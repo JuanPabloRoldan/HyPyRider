@@ -24,10 +24,9 @@ Nomenclature:
 '''
 
 import numpy as np
-from oblique_shock_solver import ObliqueShockSolver
 
 class TaylorMaccollSolver:
-    def __init__(self, gamma=1.4, Vmax=1.0, step_size=0.01):
+    def __init__(self, gamma=1.4, step_size=0.0001):
         '''
             Initializes the Taylor-Maccoll solver with default parameters.
 
@@ -41,7 +40,6 @@ class TaylorMaccollSolver:
                 Integration step size in radians.
         '''
         self.gamma = gamma
-        self.Vmax = Vmax
         self.h = step_size
 
     def taylor_maccoll_system(self, theta, Vr, dVr):
@@ -62,16 +60,16 @@ class TaylorMaccollSolver:
             np.array
                 A 2-element array containing dVr and ddVr.
         '''
-        term1 = (self.gamma - 1) / 2 * (self.Vmax**2 - Vr**2 - dVr**2)
-        term2 = (2 * Vr + dVr * np.cot(theta))
-        numerator = term1 * term2 - dVr * (Vr * dVr + dVr**2)
-        denominator = term1 - Vr * dVr
+        B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
+        C = (2 * Vr + dVr / np.tan(theta))
+        numerator = dVr **2 - (B * C)
+        denominator = B - dVr ** 2
         ddVr = numerator / denominator
         return np.array([dVr, ddVr])
 
     def rk4_step(self, theta, Vr, dVr):
         '''
-            Performs a single RK4 integration step.
+            Performs a single RK4 integration step for Taylor-Maccoll equations.
 
             Parameters
             ----------
@@ -87,17 +85,39 @@ class TaylorMaccollSolver:
             tuple
                 Updated values of Vr and dVr after one step.
         '''
-        k1 = self.h * self.taylor_maccoll_system(theta, Vr, dVr)
-        k2 = self.h * self.taylor_maccoll_system(theta + self.h / 2, Vr + k1[0] / 2, dVr + k1[1] / 2)
-        k3 = self.h * self.taylor_maccoll_system(theta + self.h / 2, Vr + k2[0] / 2, dVr + k2[1] / 2)
-        k4 = self.h * self.taylor_maccoll_system(theta + self.h, Vr + k3[0], dVr + k3[1])
-        dVr_next = dVr + (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]) / 6
-        Vr_next = Vr + (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]) / 6
+        # K1 and M1
+        K1, M1 = self.taylor_maccoll_system(theta, Vr, dVr)
+
+        # K2 and M2
+        K2, M2 = self.taylor_maccoll_system(
+            theta + 0.5 * self.h, 
+            Vr + 0.5 * self.h * K1, 
+            dVr + 0.5 * self.h * M1
+        )
+
+        # K3 and M3
+        K3, M3 = self.taylor_maccoll_system(
+            theta + 0.5 * self.h, 
+            Vr + 0.5 * self.h * K2, 
+            dVr + 0.5 * self.h * M2
+        )
+
+        # K4 and M4
+        K4, M4 = self.taylor_maccoll_system(
+            theta + self.h, 
+            Vr + self.h * K3, 
+            dVr + self.h * M3
+        )
+
+        # Update Vr and dVr
+        Vr_next = Vr + (self.h / 6) * (K1 + 2 * K2 + 2 * K3 + K4)
+        dVr_next = dVr + (self.h / 6) * (M1 + 2 * M2 + 2 * M3 + M4)
+
         return Vr_next, dVr_next
 
-    def solve(self, theta0, Vr0, dVr0, theta_end):
+    def solve(self, theta0, Vr0, dVr0):
         '''
-            Solves the Taylor-Maccoll equation over a range of angles.
+            Solves the Taylor-Maccoll equation until the condition dVr/dtheta >= 0.
 
             Parameters
             ----------
@@ -107,8 +127,6 @@ class TaylorMaccollSolver:
                 Initial radial velocity.
             dVr0 : float
                 Initial derivative of Vr.
-            theta_end : float
-                Final angle (radians).
 
             Returns
             -------
@@ -123,9 +141,10 @@ class TaylorMaccollSolver:
         Vr = Vr0
         dVr = dVr0
 
-        while theta < theta_end:
+        while abs(dVr) > 1e-4:  # Continue until dVr/dtheta >= 0
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
+
             theta_values.append(theta)
             Vr_values.append(Vr)
             dVr_values.append(dVr)

@@ -15,7 +15,7 @@ Juan P. Roldan
 Last Updated: 1/16/2025
 
 Description:
-    This project (*SO FAR*) models the conical flow field using the Taylor-Maccoll equation,
+    This project models the conical flow field using the Taylor-Maccoll equation,
     solving for post-shock conditions using the oblique shock relations.
 
 Nomenclature:
@@ -43,8 +43,6 @@ gamma = 1.4  # Specific heat ratio for air
 M1 = 3.0  # Freestream Mach number
 theta_s_deg = 30  # Shock wave angle in degrees
 theta_s = np.radians(theta_s_deg)  # Convert to radians
-theta_end_deg = 90  # End angle in degrees
-theta_end = np.radians(theta_end_deg)  # Convert to radians
 
 # Step 1: Initialize the Oblique Shock Solver
 print("Initializing oblique shock solver...")
@@ -54,26 +52,27 @@ oblique_shock_results = os_solver.calculate_post_shock_conditions(M1, theta_s)
 # Extract results from the oblique shock solver
 M2 = oblique_shock_results["M2"]
 delta = oblique_shock_results["delta"]
-Vr0 = oblique_shock_results["Vr"]
-dVr0 = oblique_shock_results["Vtheta"]
+V_r = oblique_shock_results["V_r"]
+V_theta = oblique_shock_results["V_theta"]
 
 # Print post-shock conditions
 print(f"Post-shock Mach number (M2): {M2:.4f}")
 print(f"Flow deflection angle (delta): {np.degrees(delta):.4f} degrees")
-print(f"Radial velocity (Vr): {Vr0:.4f}")
-print(f"Normal velocity (dVr): {dVr0:.4f}")
+print(f"Radial velocity (V_r): {V_r:.4f}")
+print(f"Normal velocity (V_theta): {V_theta:.4f}")
 
-# Step 2: Solve the Taylor-Maccoll equation
+# Step 2: Solve the Taylor-Maccoll equation with stopping condition
 print("Solving the Taylor-Maccoll equation...")
 tm_solver = TaylorMaccollSolver(gamma=gamma)
 theta_values, Vr_values, dVr_values = tm_solver.solve(
-    theta0=theta_s, Vr0=Vr0, dVr0=dVr0, theta_end=theta_end
+    theta0=theta_s, Vr0=V_r, dVr0=V_theta
 )
 
 # Step 3: Plot the results
 plt.figure(figsize=(10, 6))
 plt.plot(np.degrees(theta_values), Vr_values, label="Radial Velocity (Vr)")
 plt.plot(np.degrees(theta_values), dVr_values, label="Normal Velocity Derivative (dVr)")
+plt.axhline(0, color='black', linestyle='--', linewidth=0.8, label="dVr = 0")
 plt.xlabel("Theta (degrees)")
 plt.ylabel("Velocity (normalized)")
 plt.title("Taylor-Maccoll Solution: Velocity Profiles")
@@ -81,8 +80,8 @@ plt.legend()
 plt.grid()
 plt.show()
 
-# Step 4: Save results to a CSV file
-output_file = "conical_flow_results.csv"
-np.savetxt(output_file, np.column_stack((np.degrees(theta_values), Vr_values, dVr_values)),
-           delimiter=",", header="Theta (degrees),Vr (radial),dVr (normal)", comments="")
-print(f"Results saved to {output_file}.")
+# # Step 4: Save results to a CSV file
+# output_file = "conical_flow_results.csv"
+# np.savetxt(output_file, np.column_stack((np.degrees(theta_values), Vr_values, dVr_values)),
+#            delimiter=",", header="Theta (degrees),Vr (radial),dVr (normal)", comments="")
+# print(f"Results saved to {output_file}.")
