@@ -9,7 +9,6 @@ HyPyRider is a Python-based repository for designing a waverider through multipl
 - **Axisymmetric Method of Characteristics Analyzer**: Solves axisymmetric flow problems using the method of characteristics.
 - **Hypersonic Waverider Viscous Corrections**: Incorporates viscous effects into waverider designs.
 - **Hypersonic Waverider Expansion Surface Design**: Designs expansion surfaces for hypersonic flows.
-- **CFD Analysis**: Conducts computational fluid dynamics analysis to validate designs.
 
 This guide provides clear instructions for setting up the project, making changes, and collaborating using Git and VS Code.
 
@@ -122,13 +121,12 @@ HyPyRider/
 │   ├── taylor_maccoll_solver.py # Taylor-Maccoll solver code
 │   ├── notebooks/               # Contains Jupyter/Colab notebooks (optional)
 │       └── conical_flow_analyzer.ipynb
-├── busemann_inlet_design.py     # Sub-project: Busemann Inlet Design
-├── compression_surfaces.py      # Sub-project: Compression/Expansion Surfaces
-├── turbo_ramjet_cycle.py        # Sub-project: Turbo Ramjet Cycle Analysis
-├── axisymmetric_characteristics.py  # Sub-project: Axisymmetric Method of Characteristics Analyzer
-├── hypersonic_viscous_corrections.py # Sub-project: Hypersonic Waverider Viscous Corrections
-├── hypersonic_expansion_surface.py   # Sub-project: Hypersonic Expansion Surface Design
-├── cfd_analysis.py              # Sub-project: CFD Analysis
+├── busemann_inlet_design/       # Sub-project: Busemann Inlet Design
+├── compression_surfaces/        # Sub-project: Compression/Expansion Surfaces
+├── turbo_ramjet_cycle/          # Sub-project: Turbo Ramjet Cycle Analysis
+├── axisymmetric_characteristics/  # Sub-project: Axisymmetric Method of Characteristics Analyzer
+├── hypersonic_viscous_corrections/   # Sub-project: Hypersonic Waverider Viscous Corrections
+├── hypersonic_expansion_surface/     # Sub-project: Hypersonic Expansion Surface Design
 ├── README.md                    # Project documentation
 └── requirements.txt             # Python dependencies
 ```
