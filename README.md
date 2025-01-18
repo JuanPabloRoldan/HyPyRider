@@ -30,7 +30,7 @@ To get started, clone the repository to your local machine:
 
 ```bash
 # Clone the repository from GitHub
-git clone https://github.com/your-username/HyPyRider.git
+git clone https://github.com/JuanPabloRoldan/HyPyRider.git
 
 # Navigate into the project directory
 cd HyPyRider
@@ -119,8 +119,6 @@ HyPyRider/
 │   ├── main.py                  # Main script for the analyzer
 │   ├── oblique_shock_solver.py  # Oblique shock solver code
 │   ├── taylor_maccoll_solver.py # Taylor-Maccoll solver code
-│   ├── notebooks/               # Contains Jupyter/Colab notebooks (optional)
-│       └── conical_flow_analyzer.ipynb
 ├── busemann_inlet_design/       # Sub-project: Busemann Inlet Design
 ├── compression_surfaces/        # Sub-project: Compression/Expansion Surfaces
 ├── turbo_ramjet_cycle/          # Sub-project: Turbo Ramjet Cycle Analysis
@@ -134,7 +132,7 @@ HyPyRider/
 ---
 
 ## Collaboration Workflow
-1. **Clone the repo**: `git clone https://github.com/your-username/HyPyRider.git`
+1. **Clone the repo**: `git clone https://github.com/JuanPabloRoldan/HyPyRider.git`
 2. **Create a branch**: `git checkout -b your-branch-name`
 3. **Make changes and test locally**.
 4. **Commit and push your changes**: `git commit -m "message"` and `git push origin your-branch-name`.
@@ -151,4 +149,4 @@ pip install -r requirements.txt
 ---
 
 ## License
-This project is licensed under the MIT License. See `LICENSE` for details.
+WIP
