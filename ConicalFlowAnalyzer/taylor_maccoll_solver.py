@@ -60,9 +60,9 @@ class TaylorMaccollSolver:
             np.array
                 A 2-element array containing dVr and ddVr.
         '''
-        B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
+        B = ((self.gamma - 1) / 2) * (1 - Vr**2 - dVr**2)
         C = (2 * Vr + dVr / np.tan(theta))
-        numerator = dVr **2 - (B * C)
+        numerator = (Vr * dVr **2) - (B * C)
         denominator = B - dVr ** 2
         ddVr = numerator / denominator
         return np.array([dVr, ddVr])
@@ -86,34 +86,43 @@ class TaylorMaccollSolver:
                 Updated values of Vr and dVr after one step.
         '''
         # K1 and M1
-        K1, M1 = self.taylor_maccoll_system(theta, Vr, dVr)
+        dVr1, ddVr1 = self.taylor_maccoll_system(theta, Vr, dVr)
+        K1 = self.h * dVr1
+        M1 = self.h * ddVr1
 
         # K2 and M2
-        K2, M2 = self.taylor_maccoll_system(
-            theta + 0.5 * self.h, 
-            Vr + 0.5 * self.h * K1, 
-            dVr + 0.5 * self.h * M1
+        dVr2, ddVr2 = self.taylor_maccoll_system(
+            theta + 0.5 * self.h,
+            Vr + 0.5 * K1,
+            dVr + 0.5 * M1
         )
+        K2 = self.h * dVr2
+        M2 = self.h * ddVr2
 
         # K3 and M3
-        K3, M3 = self.taylor_maccoll_system(
-            theta + 0.5 * self.h, 
-            Vr + 0.5 * self.h * K2, 
-            dVr + 0.5 * self.h * M2
+        dVr3, ddVr3 = self.taylor_maccoll_system(
+            theta + 0.5 * self.h,
+            Vr + 0.5 * K2,
+            dVr + 0.5 * M2
         )
+        K3 = self.h * dVr3
+        M3 = self.h * ddVr3
 
         # K4 and M4
-        K4, M4 = self.taylor_maccoll_system(
-            theta + self.h, 
-            Vr + self.h * K3, 
-            dVr + self.h * M3
+        dVr4, ddVr4 = self.taylor_maccoll_system(
+            theta + self.h,
+            Vr + K3,
+            dVr + M3
         )
+        K4 = self.h * dVr4
+        M4 = self.h * ddVr4
 
         # Update Vr and dVr
-        Vr_next = Vr + (self.h / 6) * (K1 + 2 * K2 + 2 * K3 + K4)
-        dVr_next = dVr + (self.h / 6) * (M1 + 2 * M2 + 2 * M3 + M4)
+        Vr_next = Vr + (K1 + 2 * K2 + 2 * K3 + K4) / 6
+        dVr_next = dVr + (M1 + 2 * M2 + 2 * M3 + M4) / 6
 
         return Vr_next, dVr_next
+
 
     def solve(self, theta0, Vr0, dVr0):
         '''

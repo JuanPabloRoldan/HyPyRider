@@ -33,55 +33,81 @@ Usage:
 ==================================================
 '''
 
-from oblique_shock_solver import ObliqueShockSolver
-from taylor_maccoll_solver import TaylorMaccollSolver
 import numpy as np
 import matplotlib.pyplot as plt
+from oblique_shock_solver import ObliqueShockSolver
+from taylor_maccoll_solver import TaylorMaccollSolver
 
-# Define input parameters
-gamma = 1.4  # Specific heat ratio for air
-M1 = 3.0  # Freestream Mach number
-theta_s_deg = 30  # Shock wave angle in degrees
-theta_s = np.radians(theta_s_deg)  # Convert to radians
+def solve_cone_angle(M1, gamma, theta_s_deg):
+    """
+    Solves for the cone angle given a shock angle using the Taylor-Maccoll and Oblique Shock Solvers.
 
-# Step 1: Initialize the Oblique Shock Solver
-print("Initializing oblique shock solver...")
-os_solver = ObliqueShockSolver(gamma=gamma)
-oblique_shock_results = os_solver.calculate_post_shock_conditions(M1, theta_s)
+    Parameters:
+        M1 (float): Freestream Mach number upstream of the shock.
+        gamma (float): Specific heat ratio for the fluid.
+        theta_s_deg (float): Shock angle in degrees.
 
-# Extract results from the oblique shock solver
-M2 = oblique_shock_results["M2"]
-delta = oblique_shock_results["delta"]
-V_r = oblique_shock_results["V_r"]
-V_theta = oblique_shock_results["V_theta"]
+    Returns:
+        float: Cone angle in degrees.
+    """
+    # Convert shock angle to radians
+    theta_s = np.radians(theta_s_deg)
 
-# Print post-shock conditions
-print(f"Post-shock Mach number (M2): {M2:.4f}")
-print(f"Flow deflection angle (delta): {np.degrees(delta):.4f} degrees")
-print(f"Radial velocity (V_r): {V_r:.4f}")
-print(f"Normal velocity (V_theta): {V_theta:.4f}")
+    # Initialize solvers
+    os_solver = ObliqueShockSolver(gamma=gamma)
+    tm_solver = TaylorMaccollSolver(gamma=gamma)
 
-# Step 2: Solve the Taylor-Maccoll equation with stopping condition
-print("Solving the Taylor-Maccoll equation...")
-tm_solver = TaylorMaccollSolver(gamma=gamma)
-theta_values, Vr_values, dVr_values = tm_solver.solve(
-    theta0=theta_s, Vr0=V_r, dVr0=V_theta
-)
+    # Step 1: Use ObliqueShockSolver to calculate post-shock conditions
+    oblique_shock_results = os_solver.calculate_post_shock_conditions(M1, theta_s)
+    delta = oblique_shock_results["delta"]  # Flow deflection angle
+    V_r = oblique_shock_results["V_r"]
+    V_theta = oblique_shock_results["V_theta"]
 
-# Step 3: Plot the results
-plt.figure(figsize=(10, 6))
-plt.plot(np.degrees(theta_values), Vr_values, label="Radial Velocity (Vr)")
-plt.plot(np.degrees(theta_values), dVr_values, label="Normal Velocity Derivative (dVr)")
-plt.axhline(0, color='black', linestyle='--', linewidth=0.8, label="dVr = 0")
-plt.xlabel("Theta (degrees)")
-plt.ylabel("Velocity (normalized)")
-plt.title("Taylor-Maccoll Solution: Velocity Profiles")
-plt.legend()
-plt.grid()
-plt.show()
+    # Step 2: Use TaylorMaccollSolver to find the cone angle
+    theta_values, _, _ = tm_solver.solve(delta, V_r, V_theta)
+    cone_angle = np.degrees(theta_values[-1])  # Final theta is the cone angle
 
-# # Step 4: Save results to a CSV file
-# output_file = "conical_flow_results.csv"
-# np.savetxt(output_file, np.column_stack((np.degrees(theta_values), Vr_values, dVr_values)),
-#            delimiter=",", header="Theta (degrees),Vr (radial),dVr (normal)", comments="")
-# print(f"Results saved to {output_file}.")
+    return cone_angle
+
+def plot_shock_vs_cone(M1, gamma, theta_s_range):
+    """
+    Plots the shock angle vs. cone angle for a range of shock angles.
+
+    Parameters:
+        M1 (float): Freestream Mach number upstream of the shock.
+        gamma (float): Specific heat ratio for the fluid.
+        theta_s_range (array-like): Array of shock angles in degrees.
+    """
+    cone_angles = []
+
+    for theta_s_deg in theta_s_range:
+        try:
+            cone_angle = solve_cone_angle(M1, gamma, theta_s_deg)
+            cone_angles.append(cone_angle)
+        except ValueError:
+            cone_angles.append(None)
+
+    # Plot results
+    plt.figure(figsize=(10, 6))
+    plt.plot(cone_angles, theta_s_range, label=f"Mach = {M1}")
+    plt.xlabel("Cone Angle (degrees)")
+    plt.ylabel("Shock Angle (degrees)")
+    plt.title("Shock Angle vs Cone Angle")
+    plt.grid()
+    plt.legend()
+    plt.show()
+
+# Example Usage
+if __name__ == "__main__":
+    gamma = 1.2  # Specific heat ratio for air
+    M1 = 10.0  # Freestream Mach number
+    theta_s_deg = 30  # Shock wave angle in degrees
+
+    # Solve for a single cone angle
+    cone_angle = solve_cone_angle(M1, gamma, theta_s_deg)
+    print(f"Given Shock Angle: {theta_s_deg}°")
+    print(f"Calculated Cone Angle: {cone_angle:.4f}°")
+
+    # Generate plot for a range of shock angles
+    theta_s_range = np.linspace(6, 73, 200)  # Exclude 0 and 90 degrees
+    plot_shock_vs_cone(M1, gamma, theta_s_range)

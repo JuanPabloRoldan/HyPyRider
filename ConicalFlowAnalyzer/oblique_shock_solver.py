@@ -67,7 +67,6 @@ class ObliqueShockSolver:
 
         # Calculate post-shock Mach number (M2)
         M1_normal = M1 * np.sin(theta_s)
-        print(M1_normal)
         M2_normal_squared = (1 + ((self.gamma - 1) / 2) * M1_normal**2) / (self.gamma * M1_normal ** 2 - 0.5 * (self.gamma -1))
         M2_normal = np.sqrt(M2_normal_squared)
         M2 = M2_normal / np.sin(theta_s - delta)
@@ -76,8 +75,8 @@ class ObliqueShockSolver:
         V_prime = (2 / ((self.gamma - 1) * M2**2) + 1) ** -0.5
 
         # Decompose V' into radial and normal components
-        V_r = V_prime * np.cos(delta)
-        V_theta = V_prime * np.sin(delta)
+        V_r = V_prime * np.cos(theta_s - delta)
+        V_theta = V_prime * np.sin(theta_s - delta)
 
         return {
             "M2": M2,
