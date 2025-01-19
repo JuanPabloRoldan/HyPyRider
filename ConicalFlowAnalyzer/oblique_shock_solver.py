@@ -62,13 +62,15 @@ class ObliqueShockSolver:
             raise ValueError("Shock angle must be between 0 and 90 degrees (exclusive).")
 
         # Calculate the flow deflection angle (delta)
-        tan_delta = (2 * np.tan(theta_s) * (M1**2 * np.sin(theta_s)**2 - 1)) / \
-                    (M1**2 * (self.gamma + np.cos(2 * theta_s)) + 2)
-        delta = np.arctan(tan_delta)
+        cot_delta = np.tan(theta_s) * (((self.gamma +1) * M1 ** 2)/(2 * (M1 ** 2 * (np.sin(theta_s) ** 2) -1)) -1)
+        delta = np.arctan(1 / cot_delta)
 
         # Calculate post-shock Mach number (M2)
-        M2_normal_squared = 1 / ((self.gamma - 1) / 2 + 1 / (M1**2 * np.sin(theta_s)**2))
-        M2 = np.sqrt(M2_normal_squared) / np.sin(theta_s - delta)
+        M1_normal = M1 * np.sin(theta_s)
+        print(M1_normal)
+        M2_normal_squared = (1 + ((self.gamma - 1) / 2) * M1_normal**2) / (self.gamma * M1_normal ** 2 - 0.5 * (self.gamma -1))
+        M2_normal = np.sqrt(M2_normal_squared)
+        M2 = M2_normal / np.sin(theta_s - delta)
 
         # Calculate V' (normalized velocity magnitude)
         V_prime = (2 / ((self.gamma - 1) * M2**2) + 1) ** -0.5
