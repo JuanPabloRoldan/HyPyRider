@@ -26,10 +26,11 @@ This project includes capabilities to:
 Ensure the following libraries are installed on your system:
 - `numpy`
 - `matplotlib`
+- `pandas`
 
 Install them via:
 ```bash
-pip install numpy matplotlib
+pip install numpy matplotlib pandas
 ```
 
 ---
@@ -49,7 +50,7 @@ pip install numpy matplotlib
 ### Example Input Parameters
 The default parameters in `main.py` are:
 - **Specific Heat Ratio (`gamma`)**: 1.4 (air)
-- **Freestream Mach Number (`M1`)**: 3.0
+- **Freestream Mach Number (`M1`)**: 10.0
 - **Shock Angle (`theta_s`)**: 30°
 
 These parameters can be modified directly in the `main.py` script.
@@ -69,7 +70,7 @@ These parameters can be modified directly in the `main.py` script.
 
 ### 3. **`taylor_maccoll_solver.py`**
 - Solves the Taylor-Maccoll equations using RK4 ODE2.
-- Outputs radial and normal velocity components as functions of cone angle.
+- Outputs cone semivertex angle as a function of desired shock angle.
 
 ---
 
