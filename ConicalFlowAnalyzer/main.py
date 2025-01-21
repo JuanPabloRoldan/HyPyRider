@@ -35,6 +35,8 @@ Usage:
 
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import pandas as pd
 from oblique_shock_solver import ObliqueShockSolver
 from taylor_maccoll_solver import TaylorMaccollSolver
 
@@ -71,7 +73,7 @@ def solve_cone_angle(M1, gamma, theta_s_deg):
 
 def plot_shock_vs_cone(M1, gamma, theta_s_range):
     """
-    Plots the shock angle vs. cone angle for a range of shock angles.
+    Plots the shock angle vs. cone angle for a range of shock angles and saves the data to a CSV file.
 
     Parameters:
         M1 (float): Freestream Mach number upstream of the shock.
@@ -87,19 +89,28 @@ def plot_shock_vs_cone(M1, gamma, theta_s_range):
         except ValueError:
             cone_angles.append(None)
 
+    # Save data to CSV
+    data_folder = "data"
+    os.makedirs(data_folder, exist_ok=True)
+    csv_filename = os.path.join(data_folder, f"ConicalShocks_M{M1}_gamma{gamma}.csv")
+    data = pd.DataFrame({"Shock Angle (degrees)": theta_s_range, "Cone Angle (degrees)": cone_angles})
+    data.to_csv(csv_filename, index=False)
+
+    print(f"Data saved to {csv_filename}")
+
     # Plot results
     plt.figure(figsize=(10, 6))
     plt.plot(cone_angles, theta_s_range, label=f"Mach = {M1}")
     plt.xlabel("Cone Angle (degrees)")
     plt.ylabel("Shock Angle (degrees)")
-    plt.title("Shock Angle vs Cone Angle")
+    plt.title(f"Shock Angle vs Cone Angle at γ = {gamma}")
     plt.grid()
     plt.legend()
     plt.show()
 
 # Example Usage
 if __name__ == "__main__":
-    gamma = 1.2  # Specific heat ratio for air
+    gamma = 1.405  # Specific heat ratio for air
     M1 = 10.0  # Freestream Mach number
     theta_s_deg = 30  # Shock wave angle in degrees
 

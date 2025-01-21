@@ -34,8 +34,6 @@ class TaylorMaccollSolver:
             ----------
             gamma : float
                 Specific heat ratio, default is 1.4 for air.
-            Vmax : float
-                Maximum velocity (normalized).
             step_size : float
                 Integration step size in radians.
         '''
@@ -60,10 +58,10 @@ class TaylorMaccollSolver:
             np.array
                 A 2-element array containing dVr and ddVr.
         '''
-        B = ((self.gamma - 1) / 2) * (1 - Vr**2 - dVr**2)
+        B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
         C = (2 * Vr + dVr / np.tan(theta))
-        numerator = (Vr * dVr **2) - (B * C)
-        denominator = B - dVr ** 2
+        numerator = dVr**2 - (B * C)
+        denominator = B - dVr**2
         ddVr = numerator / denominator
         return np.array([dVr, ddVr])
 
@@ -86,43 +84,39 @@ class TaylorMaccollSolver:
                 Updated values of Vr and dVr after one step.
         '''
         # K1 and M1
-        dVr1, ddVr1 = self.taylor_maccoll_system(theta, Vr, dVr)
-        K1 = self.h * dVr1
-        M1 = self.h * ddVr1
+        K1, M1 = self.taylor_maccoll_system(theta, Vr, dVr)
+        K1 = self.h * K1
+        M1 = self.h * M1
 
         # K2 and M2
-        dVr2, ddVr2 = self.taylor_maccoll_system(
-            theta + 0.5 * self.h,
-            Vr + 0.5 * K1,
+        K2 = self.h * (dVr + 0.5 * M1)
+        M2 = self.h * self.taylor_maccoll_system(
+            theta + 0.5 * self.h, 
+            Vr + 0.5 * K1, 
             dVr + 0.5 * M1
-        )
-        K2 = self.h * dVr2
-        M2 = self.h * ddVr2
+        )[1]
 
         # K3 and M3
-        dVr3, ddVr3 = self.taylor_maccoll_system(
-            theta + 0.5 * self.h,
-            Vr + 0.5 * K2,
+        K3 = self.h * (dVr + 0.5 * M2)
+        M3 = self.h * self.taylor_maccoll_system(
+            theta + 0.5 * self.h, 
+            Vr + 0.5 * K2, 
             dVr + 0.5 * M2
-        )
-        K3 = self.h * dVr3
-        M3 = self.h * ddVr3
+        )[1]
 
         # K4 and M4
-        dVr4, ddVr4 = self.taylor_maccoll_system(
-            theta + self.h,
-            Vr + K3,
+        K4 = self.h * (dVr + M3)
+        M4 = self.h * self.taylor_maccoll_system(
+            theta + self.h, 
+            Vr + K3, 
             dVr + M3
-        )
-        K4 = self.h * dVr4
-        M4 = self.h * ddVr4
+        )[1]
 
         # Update Vr and dVr
-        Vr_next = Vr + (K1 + 2 * K2 + 2 * K3 + K4) / 6
-        dVr_next = dVr + (M1 + 2 * M2 + 2 * M3 + M4) / 6
+        Vr_next = Vr + (1 / 6) * (K1 + 2 * K2 + 2 * K3 + K4)
+        dVr_next = dVr + (1 / 6) * (M1 + 2 * M2 + 2 * M3 + M4)
 
         return Vr_next, dVr_next
-
 
     def solve(self, theta0, Vr0, dVr0):
         '''
@@ -150,7 +144,7 @@ class TaylorMaccollSolver:
         Vr = Vr0
         dVr = dVr0
 
-        while abs(dVr) > 1e-4:  # Continue until dVr/dtheta >= 0
+        while abs(dVr) > 1e-3:  # Continue until dVr/dtheta >= 0
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
 
