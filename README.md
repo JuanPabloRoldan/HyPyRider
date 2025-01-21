@@ -1,7 +1,7 @@
 # HyPyRider
 
 ## Description
-HyPyRider is a Python-based repository for designing a waverider through multiple sub-projects, including:
+HyPyRider (**Hy**personic **Py**thon-based wave**Rider** design tool) is a repository for designing and analyzing a waverider through multiple sub-projects, including:
 - **Conical Flow Analyzer**: Solves conical flow problems using oblique shock and Taylor-Maccoll solvers.
 - **Busemann Inlet Design**: Designs optimal inlet geometry for supersonic flow.
 - **Compression/Expansion Surfaces**: Analyzes flow interactions with compression and expansion surfaces.
