@@ -1,6 +1,19 @@
 import pandas as pd
 
 def extract_points_from_file(file_path):
+    '''
+    Extracts 3D points from a formatted text file and returns them as a pandas DataFrame.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the input file containing the points.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame containing the 3D points with columns ['X', 'Y', 'Z'].
+    '''
     with open(file_path, 'r') as file:
         # Read all lines of the file
         lines = file.readlines()
