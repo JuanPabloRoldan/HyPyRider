@@ -40,9 +40,10 @@ import pandas as pd
 from oblique_shock_solver import ObliqueShockSolver
 from taylor_maccoll_solver import TaylorMaccollSolver
 
-def solve_cone_angle(M1, gamma, theta_s_deg):
+def solve_Taylor_Maccoll(M1, gamma, theta_s_deg):
     """
-    Solves for the cone angle given a shock angle using the Taylor-Maccoll and Oblique Shock Solvers.
+    Solves for the cone angle and normalized velocity components 
+    given a shock angle using the Taylor-Maccoll and Oblique Shock Solvers.
 
     Parameters:
         M1 (float): Freestream Mach number upstream of the shock.
@@ -51,6 +52,8 @@ def solve_cone_angle(M1, gamma, theta_s_deg):
 
     Returns:
         float: Cone angle in degrees.
+        float: Normalized radial Velocity
+        flaot: Normalized tangential velocity
     """
     # Convert shock angle to radians
     theta_s = np.radians(theta_s_deg)
@@ -66,10 +69,10 @@ def solve_cone_angle(M1, gamma, theta_s_deg):
     V_theta = oblique_shock_results["V_theta"]
 
     # Step 2: Use TaylorMaccollSolver to find the cone angle
-    theta_values, _, _ = tm_solver.solve(delta, V_r, V_theta)
+    theta_values, V_r, V_theta = tm_solver.solve(delta, V_r, V_theta)
     cone_angle = np.degrees(theta_values[-1])  # Final theta is the cone angle
 
-    return cone_angle
+    return cone_angle, V_r, V_theta
 
 def plot_shock_vs_cone(M1, gamma, theta_s_range):
     """
@@ -84,7 +87,7 @@ def plot_shock_vs_cone(M1, gamma, theta_s_range):
 
     for theta_s_deg in theta_s_range:
         try:
-            cone_angle = solve_cone_angle(M1, gamma, theta_s_deg)
+            cone_angle, _, _ = solve_Taylor_Maccoll(M1, gamma, theta_s_deg)
             cone_angles.append(cone_angle)
         except ValueError:
             cone_angles.append(None)
@@ -115,7 +118,7 @@ if __name__ == "__main__":
     theta_s_deg = 30  # Shock wave angle in degrees
 
     # Solve for a single cone angle
-    cone_angle = solve_cone_angle(M1, gamma, theta_s_deg)
+    cone_angle, _, _ = solve_Taylor_Maccoll(M1, gamma, theta_s_deg)
     print(f"Given Shock Angle: {theta_s_deg}°")
     print(f"Calculated Cone Angle: {cone_angle:.4f}°")
 
