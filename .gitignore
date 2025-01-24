@@ -29,3 +29,6 @@ desktop.ini
 
 # User settings and secrets
 *.env
+
+# Locally processed data
+outputs/
