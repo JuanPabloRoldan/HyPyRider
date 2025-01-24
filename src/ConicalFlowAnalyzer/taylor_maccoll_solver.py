@@ -10,8 +10,6 @@ Courtney Paternak
 Dominic Perito
 Juan P. Roldan
 
-Last Updated: 1/16/2025
-
 Nomenclature:
     gamma   : Specific heat ratio (dimensionless), default is 1.4 for air
     M1      : Freestream Mach number upstream of the shock
