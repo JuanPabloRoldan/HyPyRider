@@ -136,9 +136,6 @@ class TaylorMaccollSolver:
             tuple
                 Arrays of theta, Vr, and dVr.
         '''
-        theta_values = [theta0]
-        Vr_values = [Vr0]
-        dVr_values = [dVr0]
 
         theta = theta0
         Vr = Vr0
@@ -148,8 +145,4 @@ class TaylorMaccollSolver:
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
 
-            theta_values.append(theta)
-            Vr_values.append(Vr)
-            dVr_values.append(dVr)
-
-        return np.array(theta_values), np.array(Vr_values), np.array(dVr_values)
+        return theta, Vr, dVr
