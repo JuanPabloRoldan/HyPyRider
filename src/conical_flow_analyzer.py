@@ -20,9 +20,7 @@ class ConicalFlowAnalyzer:
             theta_s_deg (float): Shock angle in degrees.
 
         Returns:
-            float: Cone angle in degrees.
-            float: Normalized radial Velocity
-            float: Normalized tangential velocity
+            pd.DataFrame: A DataFrame containing theta (cone angle in degrees), V_r, and V_theta for each iteration.
         """
         # Convert shock angle to radians
         theta_s = np.radians(theta_s_deg)
@@ -30,53 +28,15 @@ class ConicalFlowAnalyzer:
         # Step 1: Use ObliqueShockSolver to calculate post-shock conditions
         oblique_shock_results = self.os_solver.calculate_post_shock_conditions(self.M1, theta_s)
         delta = oblique_shock_results["delta"]  # Flow deflection angle
-        V_r = oblique_shock_results["V_r"]
-        V_theta = oblique_shock_results["V_theta"]
+        M2 = oblique_shock_results["M2"]
 
-        # Step 2: Use TaylorMaccollSolver to find the cone angle
-        theta, V_r, V_theta = self.tm_solver.solve(delta, V_r, V_theta)
-        cone_angle = np.degrees(theta)  # Final theta is the cone angle
+        # Step 2: Calcualte normalized velocity components
+        V_prime, V_r, V_theta = self.tm_solver.calculate_velocity_components(M2, theta_s, delta)
 
-        return cone_angle, V_r, V_theta
+        # Step 4: Use TaylorMaccollSolver to find the cone angle and iterate
+        results_df = self.tm_solver.solve(delta, V_r, V_theta)
 
-    def solve_taylor_maccoll_range(self, theta_s_range):
-        """
-        Calculates the shock angle vs. cone angle for a range of shock angles 
-        and saves the data to a CSV file.
+        # Prepare data for output
+        results_df = pd.DataFrame(results_df, columns=["Theta (degrees)", "V_r", "V_theta"])
 
-        Parameters:
-            theta_s_range (array-like): Array of shock angles in degrees.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing shock angles, cone angles, V_r, and V_theta.
-        """
-        cone_angles = []
-        V_rs = []
-        V_thetas = []
-
-        for theta_s_deg in theta_s_range:
-            try:
-                cone_angle, V_r, V_theta = self.solve_taylor_maccoll(theta_s_deg)
-                cone_angles.append(cone_angle)
-                V_rs.append(V_r)
-                V_thetas.append(V_theta)
-            except ValueError:
-                cone_angles.append(None)
-                V_rs.append(None)
-                V_thetas.append(None)
-
-        # Save data to CSV
-        data_folder = "data"
-        os.makedirs(data_folder, exist_ok=True)
-        csv_filename = os.path.join(data_folder, f"ConicalShocks_M{self.M1}_gamma{self.gamma}.csv")
-        data = pd.DataFrame({
-            "Shock Angle (degrees)": theta_s_range,
-            "Cone Angle (degrees)": cone_angles,
-            "V_r": V_rs,
-            "V_theta": V_thetas
-        })
-        data.to_csv(csv_filename, index=False)
-
-        print(f"Data saved to {csv_filename}")
-
-        return data
+        return results_df

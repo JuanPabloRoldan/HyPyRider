@@ -10,7 +10,7 @@ Courtney Paternak
 Dominic Perito
 Juan P. Roldan
 
-Last Updated: 1/16/2025
+Last Updated: 1/26/2025
 
 Nomenclature:
     gamma   : Specific heat ratio (dimensionless), default is 1.4 for air
@@ -37,9 +37,60 @@ class ObliqueShockSolver:
         '''
         self.gamma = gamma
 
+    def calculate_flow_deflection_angle(self, M1, theta_s):
+        '''
+            Calculates the flow deflection angle (delta).
+
+            Parameters
+            ----------
+            M1 : float
+                Freestream Mach number upstream of the shock.
+            theta_s : float
+                Shock wave angle in radians.
+
+            Returns
+            -------
+            float
+                Flow deflection angle (delta) in radians.
+        '''
+        cot_delta = np.tan(theta_s) * (((self.gamma + 1) * M1 ** 2) / (2 * (M1 ** 2 * (np.sin(theta_s) ** 2) - 1)) - 1)
+        delta = np.arctan(1 / cot_delta)
+        return delta
+
+    def calculate_post_shock_mach_and_deflection(self, M1, theta_s):
+        '''
+            Calculates the post-shock Mach number (M2) and flow deflection angle (delta).
+
+            Parameters
+            ----------
+            M1 : float
+                Freestream Mach number upstream of the shock.
+            theta_s : float
+                Shock wave angle in radians.
+
+            Returns
+            -------
+            tuple
+                delta : float
+                    Flow deflection angle in radians.
+                M2 : float
+                    Downstream Mach number (M2).
+        '''
+        # Calculate delta
+        delta = self.calculate_flow_deflection_angle(M1, theta_s)
+
+        # Calculate M2
+        M1_normal = M1 * np.sin(theta_s)
+        M2_normal_squared = (1 + ((self.gamma - 1) / 2) * M1_normal**2) / (self.gamma * M1_normal**2 - 0.5 * (self.gamma - 1))
+        M2_normal = np.sqrt(M2_normal_squared)
+        M2 = M2_normal / np.sin(theta_s - delta)
+
+        return delta, M2
+
     def calculate_post_shock_conditions(self, M1, theta_s):
         '''
-            Calculates the post-shock velocity magnitude (V') and its components (V'_r and V'_theta).
+            Calculates the post-shock conditions including deflection angle, downstream Mach number,
+            and velocity components.
 
             Parameters
             ----------
@@ -52,36 +103,17 @@ class ObliqueShockSolver:
             -------
             dict
                 A dictionary with the following keys:
-                - M2: Downstream Mach number.
-                - V_prime: Normalized velocity magnitude (V').
                 - delta: Flow deflection angle (radians).
-                - V_r: Radial component of velocity (V'_r, normalized).
-                - V_theta: Normal component of velocity (V'_theta, normalized).
+                - M2: Downstream Mach number.
+                - TODO: temp, pressure, and density ratios
         '''
         if theta_s <= 0 or theta_s >= np.pi / 2:
             raise ValueError("Shock angle must be between 0 and 90 degrees (exclusive).")
 
-        # Calculate the flow deflection angle (delta)
-        cot_delta = np.tan(theta_s) * (((self.gamma +1) * M1 ** 2)/(2 * (M1 ** 2 * (np.sin(theta_s) ** 2) -1)) -1)
-        delta = np.arctan(1 / cot_delta)
-
-        # Calculate post-shock Mach number (M2)
-        M1_normal = M1 * np.sin(theta_s)
-        M2_normal_squared = (1 + ((self.gamma - 1) / 2) * M1_normal**2) / (self.gamma * M1_normal ** 2 - 0.5 * (self.gamma -1))
-        M2_normal = np.sqrt(M2_normal_squared)
-        M2 = M2_normal / np.sin(theta_s - delta)
-
-        # Calculate V' (normalized velocity magnitude)
-        V_prime = (2 / ((self.gamma - 1) * M2**2) + 1) ** -0.5
-
-        # Decompose V' into radial and normal components
-        V_r = V_prime * np.cos(theta_s - delta)
-        V_theta = V_prime * np.sin(theta_s - delta)
+        # Calculate delta and M2
+        delta, M2 = self.calculate_post_shock_mach_and_deflection(M1, theta_s)
 
         return {
-            "M2": M2,
-            "V_prime": V_prime,
             "delta": delta,
-            "V_r": V_r,
-            "V_theta": V_theta
+            "M2": M2
         }
