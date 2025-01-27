@@ -12,7 +12,7 @@ def test_calculate_velocity_components(solver):
     Test the calculation of the post-shock normalized velocity
     and radial / tangential components *right after* the shock.
     """
-    
+    # (Vals from OS relations @ M1 = 10 and gamma = 1.4)
     # Assume M2, shock angle, flow deflection angle are inputted correctly
     M2 = 3.61986846
     theta_s = np.radians(30)
@@ -46,7 +46,9 @@ def test_solve(solver):
     Test the Taylor-Maccoll solver by asserting the first (shock) and last (cone) values of theta.
     """
     # Initial conditions
-    theta0 = np.radians(30)  # Initial angle in radians
+    # Values come from M1 = 10 and gamma = 1.4 @ wave angle of 30deg
+    # Recall, theta0 = wedge angle from OS relations
+    theta0 = np.radians(23.4132244)  # Initial angle in radians
     Vr0 = 0.845154249        # Initial radial velocity
     dVr0 = 0.097590007       # Initial derivative of Vr ~ V_theta
 
@@ -59,8 +61,8 @@ def test_solve(solver):
     assert "V_theta" in results.columns
 
     # Expected first and last Theta values (replace with known benchmarks if available)
-    expected_first_theta = 30         # First theta should always match theta0 in degrees
-    expected_last_theta = 26.5909011  # Replace with expected value for the test case
+    expected_first_theta = 23.4132244 # First theta should always match theta0 in degrees
+    expected_last_theta = 26.5909011  # Expected cone angle
     
     # Assert first and last Theta values
     assert np.isclose(results["Theta (degrees)"].iloc[0], expected_first_theta, atol=1e-3), \
