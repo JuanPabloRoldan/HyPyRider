@@ -24,6 +24,7 @@ Nomenclature:
 '''
 
 import numpy as np
+import pandas as pd
 
 class TaylorMaccollSolver:
     def __init__(self, gamma=1.4, step_size=0.0001):
@@ -39,6 +40,41 @@ class TaylorMaccollSolver:
         '''
         self.gamma = gamma
         self.h = step_size
+
+    def calculate_velocity_components(self, M2, theta_s, delta):
+        '''
+        Calculates and decomposes the normalized velocity magnitude (V') into its components.
+
+        Parameters
+        ----------
+        M2 : float
+            Downstream Mach number (after the shock).
+        theta_s : float
+            Shock wave angle in radians.
+        delta : float
+            Flow deflection angle in radians.
+
+        Returns
+        -------
+        tuple
+            V_prime : float
+                Normalized velocity magnitude (V').
+            V_r : float
+                Radial component of velocity (V'_r, normalized).
+            V_theta : float
+                Tangential component of velocity (V'_theta, normalized).
+        '''
+        # Compute the normalized velocity magnitude
+        V_prime = (2 / ((self.gamma - 1) * M2**2) + 1) ** -0.5
+
+        # Compute the radial velocity component (V_r)
+        V_r = V_prime * np.cos(theta_s - delta)
+
+        # Compute the tangential velocity component (V_theta)
+        V_theta = V_prime * np.sin(theta_s - delta)
+
+        # Return the computed values
+        return V_prime, V_r, V_theta
 
     def taylor_maccoll_system(self, theta, Vr, dVr):
         '''
@@ -120,7 +156,7 @@ class TaylorMaccollSolver:
 
     def solve(self, theta0, Vr0, dVr0):
         '''
-            Solves the Taylor-Maccoll equation until the condition dVr/dtheta >= 0.
+            Solves the Taylor-Maccoll equation and returns a DataFrame with results.
 
             Parameters
             ----------
@@ -133,23 +169,26 @@ class TaylorMaccollSolver:
 
             Returns
             -------
-            tuple
-                Arrays of theta, Vr, and dVr.
+            pd.DataFrame
+                DataFrame containing Theta (degrees), V_r, and V_theta.
         '''
-        theta_values = [theta0]
-        Vr_values = [Vr0]
-        dVr_values = [dVr0]
-
         theta = theta0
         Vr = Vr0
         dVr = dVr0
 
+        # Lists to store results
+        results = []
+
         while abs(dVr) > 1e-3:  # Continue until dVr/dtheta >= 0
+            # Calculate V_theta using the relation V_theta^2 = 1 - Vr^2
+
+            # Save current results (convert theta to degrees)
+            results.append([np.degrees(theta), Vr, dVr])
+
+            # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
 
-            theta_values.append(theta)
-            Vr_values.append(Vr)
-            dVr_values.append(dVr)
-
-        return np.array(theta_values), np.array(Vr_values), np.array(dVr_values)
+        # Create and return DataFrame
+        results_df = pd.DataFrame(results, columns=["Theta (degrees)", "V_r", "V_theta"])
+        return results_df

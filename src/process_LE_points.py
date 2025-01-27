@@ -32,8 +32,3 @@ def extract_points_from_file(file_path):
     df = pd.DataFrame(data, columns=['X', 'Y', 'Z'])
 
     return df
-
-# Example usage
-file_path = 'inputs/LeadingEdgeData_LeftSide.nmb'  # Replace with the actual file path
-df = extract_points_from_file(file_path)
-print(df)
