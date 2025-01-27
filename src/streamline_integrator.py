@@ -20,28 +20,35 @@ class StreamlineIntegrator:
         # Create an instance of ConicalFlowAnalyzer
         self.conical_analyzer = ConicalFlowAnalyzer(M1, gamma)
 
-        # Tabulate post-shock flow properties from shock angle to the cone angle 
-        self.TM_tabulation = self.conical_analyzer.solve_taylor_maccoll(theta_s)
+        # Tabulate post-shock flow properties from shock angle to the cone angle
+        # TODO - currently, "full" only analyzes from theta wedge to theta cone, we need up to theta shock
+        self.TM_tabulation = self.conical_analyzer.solve_taylor_maccoll_full(theta_s)
         print(self.TM_tabulation)
 
     def trace_streamline(self, x, y, z):
+        """
+        Traces a streamline given the initial LE, normalized coordinates.
 
+        Parameters:
+            x (float): normalized x-coordinate of LE point
+            y (float): normalized y-coordinate of LE point
+            z (float): normalized z-coordinate of LE point
+        """
         theta = self.theta_s
+        theta = np.radians(theta)
 
-        while x < 9:
+        while x < 1:
             r = np.sqrt(x ** 2 + y ** 2 + z **2)
-            r /= 9.3969262078590852
             alpha = np.arctan(abs(z / y))
 
             dt = 0.02
 
             # Interpolate V_r and V_theta
-            V_r = np.interp(theta, self.TM_tabulation['Theta (degrees)'], self.TM_tabulation['V_r'])
-            V_theta = np.interp(theta, self.TM_tabulation['Theta (degrees)'], self.TM_tabulation['V_theta'])
+            V_r = np.interp(np.degrees(theta), self.TM_tabulation['Theta (degrees)'], self.TM_tabulation['V_r'])
+            V_theta = np.interp(np.degrees(theta), self.TM_tabulation['Theta (degrees)'], self.TM_tabulation['V_theta'])
             print(f'Vr={V_r}\tVtheta={V_theta}')
 
             d_theta = V_theta * dt / r
-            theta = np.radians(theta)
             theta += d_theta
 
             r += V_r * dt
@@ -51,7 +58,7 @@ class StreamlineIntegrator:
             y = w * np.cos(alpha)
             z = w * np.sin(alpha)
 
-            print(f'theta={theta}')
+            print(f'theta={np.degrees(theta)}')
             print(f'x={x}\ty={y}\tz={z}')
 
     def create_lower_surface(self):
@@ -59,13 +66,24 @@ class StreamlineIntegrator:
         """
         theta_0 = self.theta_s
 
+        # Find the maximum value of x to normalize lengths
+        max_x = self.LE_points['X'].max()  # Assumes LE_points is a DataFrame with a column 'X'
+        self.ref_length = max_x
+
+        debug_counter = 0
         for index, row in self.LE_points.iterrows():
+            if debug_counter == 1:
+                break
             x, y, z = row['X'], row['Y'], row['Z']
+            x /= self.ref_length
+            y /= self.ref_length
+            z /= self.ref_length
             print(f'NEW POINT')
             print(f'x={x}\ty={y}\tz={z}')
 
             self.trace_streamline(x, y, z)
             print('\n\n\n')
+            debug_counter += 1
 
 
 # Example Usage
