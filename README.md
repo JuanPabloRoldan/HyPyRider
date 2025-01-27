@@ -113,20 +113,7 @@ Your changes will now be reviewed and merged into the main branch by the project
 
 ## Project Structure
 ```
-HyPyRider/
-│
-├── conical_flow_analyzer/       # Sub-project: Conical Flow Analyzer
-│   ├── main.py                  # Main script for the analyzer
-│   ├── oblique_shock_solver.py  # Oblique shock solver code
-│   ├── taylor_maccoll_solver.py # Taylor-Maccoll solver code
-├── busemann_inlet_design/       # Sub-project: Busemann Inlet Design
-├── compression_surfaces/        # Sub-project: Compression/Expansion Surfaces
-├── turbo_ramjet_cycle/          # Sub-project: Turbo Ramjet Cycle Analysis
-├── axisymmetric_characteristics/  # Sub-project: Axisymmetric Method of Characteristics Analyzer
-├── hypersonic_viscous_corrections/   # Sub-project: Hypersonic Waverider Viscous Corrections
-├── hypersonic_expansion_surface/     # Sub-project: Hypersonic Expansion Surface Design
-├── README.md                    # Project documentation
-└── requirements.txt             # Python dependencies
+WIP
 ```
 
 ---
