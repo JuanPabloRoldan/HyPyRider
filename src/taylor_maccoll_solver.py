@@ -177,17 +177,15 @@ class TaylorMaccollSolver:
         dVr = dVr0
 
         # Lists to store results
-        results = []
+        results = [[np.degrees(theta), Vr, dVr]]  # Log initial conditions
 
-        while abs(dVr) > 1e-3:  # Continue until dVr/dtheta >= 0
-            # Calculate V_theta using the relation V_theta^2 = 1 - Vr^2
-
-            # Save current results (convert theta to degrees)
-            results.append([np.degrees(theta), Vr, dVr])
-
+        while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
+
+            # Save current results (convert theta to degrees)
+            results.append([np.degrees(theta), Vr, dVr])
 
         # Create and return DataFrame
         results_df = pd.DataFrame(results, columns=["Theta (degrees)", "V_r", "V_theta"])
