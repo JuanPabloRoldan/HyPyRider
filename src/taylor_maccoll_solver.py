@@ -29,14 +29,14 @@ import pandas as pd
 class TaylorMaccollSolver:
     def __init__(self, gamma=1.4, step_size=0.0001):
         '''
-            Initializes the Taylor-Maccoll solver with default parameters.
+        Initializes the Taylor-Maccoll solver with default parameters.
 
-            Parameters
-            ----------
-            gamma : float
-                Specific heat ratio, default is 1.4 for air.
-            step_size : float
-                Integration step size in radians.
+        Parameters
+        ----------
+        gamma : float
+            Specific heat ratio, default is 1.4 for air.
+        step_size : float
+            Integration step size in radians.
         '''
         self.gamma = gamma
         self.h = step_size
@@ -78,21 +78,21 @@ class TaylorMaccollSolver:
 
     def taylor_maccoll_system(self, theta, Vr, dVr):
         '''
-            Defines the Taylor-Maccoll ODE system.
+        Defines the Taylor-Maccoll ODE system.
 
-            Parameters
-            ----------
-            theta : float
-                Angle of the position vector from the cone vertex (radians).
-            Vr : float
-                Radial component of velocity (normalized).
-            dVr : float
-                First derivative of Vr with respect to theta.
+        Parameters
+        ----------
+        theta : float
+            Angle of the position vector from the cone vertex (radians).
+        Vr : float
+            Radial component of velocity (normalized).
+        dVr : float
+            First derivative of Vr with respect to theta.
 
-            Returns
-            -------
-            np.array
-                A 2-element array containing dVr and ddVr.
+        Returns
+        -------
+        np.array
+            A 2-element array containing dVr and ddVr.
         '''
         B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
         C = (2 * Vr + dVr / np.tan(theta))
@@ -103,21 +103,21 @@ class TaylorMaccollSolver:
 
     def rk4_step(self, theta, Vr, dVr):
         '''
-            Performs a single RK4 integration step for Taylor-Maccoll equations.
+        Performs a single RK4 integration step for Taylor-Maccoll equations.
 
-            Parameters
-            ----------
-            theta : float
-                Current angle (radians).
-            Vr : float
-                Current radial velocity.
-            dVr : float
-                Current derivative of radial velocity.
+        Parameters
+        ----------
+        theta : float
+            Current angle (radians).
+        Vr : float
+            Current radial velocity.
+        dVr : float
+            Current derivative of radial velocity.
 
-            Returns
-            -------
-            tuple
-                Updated values of Vr and dVr after one step.
+        Returns
+        -------
+        tuple
+            Updated values of Vr and dVr after one step.
         '''
         # K1 and M1
         K1, M1 = self.taylor_maccoll_system(theta, Vr, dVr)
@@ -156,21 +156,21 @@ class TaylorMaccollSolver:
 
     def solve(self, theta0, Vr0, dVr0):
         '''
-            Solves the Taylor-Maccoll equation and returns the final values.
+        Solves the Taylor-Maccoll equation and returns the final values.
 
-            Parameters
-            ----------
-            theta0 : float
-                Initial angle (radians).
-            Vr0 : float
-                Initial radial velocity.
-            dVr0 : float
-                Initial derivative of Vr.
+        Parameters
+        ----------
+        theta0 : float
+            Initial angle (radians).
+        Vr0 : float
+            Initial radial velocity.
+        dVr0 : float
+            Initial derivative of Vr.
 
-            Returns
-            -------
-            tuple
-                Final values of Theta (degrees), V_r, and V_theta.
+        Returns
+        -------
+        tuple
+            Final values of Theta (degrees), V_r, and V_theta.
         '''
         theta = theta0
         Vr = Vr0
@@ -186,21 +186,23 @@ class TaylorMaccollSolver:
     
     def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0):
         '''
-            Solves the Taylor-Maccoll equation and returns a DataFrame with results.
+        Solves the Taylor-Maccoll equation and returns a DataFrame with results.
 
-            Parameters
-            ----------
-            theta0 : float
-                Initial angle (radians).
-            Vr0 : float
-                Initial radial velocity.
-            dVr0 : float
-                Initial derivative of Vr.
+        Parameters
+        ----------
+        theta_s : float
+            Shock angle (radians).
+        theta_c : float
+            Cone angle (radians).
+        Vr0 : float
+            Initial radial velocity.
+        dVr0 : float
+            Initial derivative of Vr.
 
-            Returns
-            -------
-            pd.DataFrame
-                DataFrame containing Theta (degrees), V_r, and V_theta.
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame containing Theta (degrees), V_r, and V_theta.
         '''
         theta = theta_c
         Vr = Vr0

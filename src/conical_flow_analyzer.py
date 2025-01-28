@@ -6,6 +6,13 @@ from taylor_maccoll_solver import TaylorMaccollSolver
 
 class ConicalFlowAnalyzer:
     def __init__(self, M1, gamma):
+        """
+        Initializes the ConicalFlowAnalyzer with Mach number and specific heat ratio.
+
+        Parameters:
+            M1 (float): Freestream Mach number upstream of the shock.
+            gamma (float): Specific heat ratio for the fluid.
+        """
         self.M1 = M1
         self.gamma = gamma
         self.os_solver = ObliqueShockSolver(gamma=gamma)
@@ -20,7 +27,10 @@ class ConicalFlowAnalyzer:
             theta_s_deg (float): Shock angle in degrees.
 
         Returns:
-            pd.DataFrame: A DataFrame containing theta (cone angle in degrees), V_r, and V_theta for each iteration.
+            tuple: A tuple containing:
+                - theta_c (float): Cone angle in degrees.
+                - V_r (float): Radial velocity component (normalized).
+                - V_theta (float): Tangential velocity component (normalized).
         """
         # Convert shock angle to radians
         theta_s = np.radians(theta_s_deg)
@@ -40,16 +50,25 @@ class ConicalFlowAnalyzer:
     
     def tabulate_tm_shock_to_cone(self, theta_s_deg):
         """
-        Solves from the shock angle to the cone angle using Taylor-Maccoll equations.
+        Solves from the shock angle to the cone angle using Taylor-Maccoll equations
+        and generates a table of results.
 
         Parameters:
             theta_s_deg (float): Shock angle in degrees.
 
         Returns:
-            pd.DataFrame: A DataFrame containing theta (degrees), V_r, and V_theta.
+            pd.DataFrame: A DataFrame containing:
+                - Theta (degrees): Cone angle in degrees.
+                - V_r: Radial velocity component (normalized).
+                - V_theta: Tangential velocity component (normalized).
         """
+        # Convert shock angle to radians
         theta_s = np.radians(theta_s_deg)
+
+        # Solve for cone angle and initial velocity components
         theta_c_deg, V_r0, V_theta0 = self.solve_taylor_maccoll(theta_s_deg)
         theta_c = np.radians(theta_c_deg)
+
+        # Tabulate results from shock to cone
         df = self.tm_solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r0, V_theta0)
-        print(df)
+        return df
