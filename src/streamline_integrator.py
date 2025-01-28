@@ -22,7 +22,7 @@ class StreamlineIntegrator:
 
         # Tabulate post-shock flow properties from shock angle to the cone angle
         # TODO - currently, "full" only analyzes from theta wedge to theta cone, we need up to theta shock
-        self.TM_tabulation = self.conical_analyzer.solve_taylor_maccoll_full(theta_s)
+        self.TM_tabulation = self.conical_analyzer.tabulate_tm_shock_to_cone(theta_s)
         print(self.TM_tabulation)
 
     def trace_streamline(self, x, y, z):
@@ -96,4 +96,4 @@ if __name__ == "__main__":
     file_path = 'src/inputs/LeadingEdgeData_LeftSide.nmb'
     integrator.LE_points = process_LE_points.extract_points_from_file(file_path)
 
-    integrator.create_lower_surface()
+    # integrator.create_lower_surface()

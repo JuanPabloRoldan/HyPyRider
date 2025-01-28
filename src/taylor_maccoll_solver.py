@@ -156,6 +156,36 @@ class TaylorMaccollSolver:
 
     def solve(self, theta0, Vr0, dVr0):
         '''
+            Solves the Taylor-Maccoll equation and returns the final values.
+
+            Parameters
+            ----------
+            theta0 : float
+                Initial angle (radians).
+            Vr0 : float
+                Initial radial velocity.
+            dVr0 : float
+                Initial derivative of Vr.
+
+            Returns
+            -------
+            tuple
+                Final values of Theta (degrees), V_r, and V_theta.
+        '''
+        theta = theta0
+        Vr = Vr0
+        dVr = dVr0
+
+        while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
+            # Perform RK4 step
+            Vr, dVr = self.rk4_step(theta, Vr, dVr)
+            theta += self.h
+
+        # Return final values
+        return np.degrees(theta), Vr, dVr
+    
+    def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0):
+        '''
             Solves the Taylor-Maccoll equation and returns a DataFrame with results.
 
             Parameters
@@ -172,14 +202,14 @@ class TaylorMaccollSolver:
             pd.DataFrame
                 DataFrame containing Theta (degrees), V_r, and V_theta.
         '''
-        theta = theta0
+        theta = theta_c
         Vr = Vr0
         dVr = dVr0
 
         # Lists to store results
         results = [[np.degrees(theta), Vr, dVr]]  # Log initial conditions
 
-        while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
+        while not np.isclose(theta, theta_s):  # Continue until reach shock angle
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
