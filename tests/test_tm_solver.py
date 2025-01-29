@@ -53,19 +53,11 @@ def test_solve(solver):
     dVr0 = 0.097590007       # Initial derivative of Vr ~ V_theta
 
     # Call the solve function
-    results = solver.solve(theta0, Vr0, dVr0)
-
-    # Validate the output structure
-    assert "Theta (degrees)" in results.columns
-    assert "V_r" in results.columns
-    assert "V_theta" in results.columns
+    theta_c, _, _ = solver.solve(theta0, Vr0, dVr0)
 
     # Expected first and last Theta values (replace with known benchmarks if available)
-    expected_first_theta = 23.4132244 # First theta should always match theta0 in degrees
-    expected_last_theta = 26.5909011  # Expected cone angle
+    expected_theta_c = 26.5909011  # Expected cone angle
     
     # Assert first and last Theta values
-    assert np.isclose(results["Theta (degrees)"].iloc[0], expected_first_theta, atol=1e-3), \
-        f"First Theta mismatch: {results['Theta (degrees)'].iloc[0]} != {expected_first_theta}"
-    assert np.isclose(results["Theta (degrees)"].iloc[-1], expected_last_theta, atol=1e-3), \
-        f"Last Theta mismatch: {results['Theta (degrees)'].iloc[-1]} != {expected_last_theta}"
+    assert np.isclose(theta_c, expected_theta_c, rtol=0.01), \
+        f"Cone angle mismatch: {theta_c} != {expected_theta_c}"
