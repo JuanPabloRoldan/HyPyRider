@@ -170,7 +170,7 @@ class TaylorMaccollSolver:
         Returns
         -------
         tuple
-            Final values of Theta (degrees), V_r, and V_theta.
+            cone angle (radians), V_r, and V_theta.
         '''
         theta = theta0
         Vr = Vr0
@@ -182,7 +182,7 @@ class TaylorMaccollSolver:
             theta += self.h
 
         # Return final values
-        return np.degrees(theta), Vr, dVr
+        return theta, Vr, dVr
     
     def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0):
         '''
@@ -202,23 +202,23 @@ class TaylorMaccollSolver:
         Returns
         -------
         pd.DataFrame
-            DataFrame containing Theta (degrees), V_r, and V_theta.
+            DataFrame containing Theta (radians), V_r, and V_theta.
         '''
         theta = theta_c
         Vr = Vr0
         dVr = dVr0
 
         # Lists to store results
-        results = [[np.degrees(theta), Vr, dVr]]  # Log initial conditions
+        results = [[theta, Vr, dVr]]  # Log initial conditions
 
         while not np.isclose(theta, theta_s):  # Continue until reach shock angle
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
 
-            # Save current results (convert theta to degrees)
-            results.append([np.degrees(theta), Vr, dVr])
+            # Save current results
+            results.append([theta, Vr, dVr])
 
         # Create and return DataFrame
-        results_df = pd.DataFrame(results, columns=["Theta (degrees)", "V_r", "V_theta"])
+        results_df = pd.DataFrame(results, columns=["Theta (radians)", "V_r", "V_theta"])
         return results_df

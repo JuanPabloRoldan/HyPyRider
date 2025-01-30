@@ -54,7 +54,7 @@ def test_solve(solver):
 
     # Call the solve function
     theta_c, _, _ = solver.solve(theta0, Vr0, dVr0)
-
+    theta_c = np.degrees(theta_c) # Convert from rad to deg for easier comparison
     # Expected first and last Theta values (replace with known benchmarks if available)
     expected_theta_c = 26.5909011  # Expected cone angle
     

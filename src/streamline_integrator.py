@@ -14,7 +14,7 @@ class StreamlineIntegrator:
         Parameters:
             gamma (float): Specific heat ratio for the fluid.
             M1 (float): Freestream Mach number upstream of the shock.
-            theta_s (float): Shock wave angle in degrees.
+            theta_s (float): Shock wave angle in radians.
         """
         self.gamma = gamma
         self.M1 = M1
@@ -22,6 +22,7 @@ class StreamlineIntegrator:
 
         # Create an instance of ConicalFlowAnalyzer
         self.conical_analyzer = ConicalFlowAnalyzer(M1, gamma)
+        self.theta_c, _, _ = self.conical_analyzer.solve_taylor_maccoll(self.theta_s)
 
         # Tabulate post-shock flow properties from shock angle to the cone angle
         self.TM_tabulation = self.conical_analyzer.tabulate_tm_shock_to_cone(theta_s)
@@ -40,20 +41,21 @@ class StreamlineIntegrator:
             TODO: Prints the evolution of the streamline to the console.
         """
         theta = self.theta_s
-        theta = np.radians(theta)
 
         debug_inner_counter = 0
 
-        while x < 0.5:
+        while theta > self.theta_c:
             debug_inner_counter += 1
+            if debug_inner_counter == 2:
+                break
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
             alpha = np.arctan(abs(z / y))
 
             dt = 0.02
 
             # Interpolate V_r and V_theta from tabulated data
-            V_r = np.interp(np.degrees(theta), self.TM_tabulation['Theta (degrees)'], self.TM_tabulation['V_r'])
-            V_theta = np.interp(np.degrees(theta), self.TM_tabulation['Theta (degrees)'], self.TM_tabulation['V_theta'])
+            V_r = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
+            V_theta = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
             print(f'Vr={V_r}\tVtheta={V_theta}')
 
             # Update theta and r
@@ -93,6 +95,8 @@ class StreamlineIntegrator:
 
         debug_counter = 0
         for index, row in self.LE_points.iterrows():
+            if debug_counter == 1:
+                break
             x, y, z = row['X'], row['Y'], row['Z']
             x /= self.ref_length
             y /= self.ref_length
@@ -108,7 +112,7 @@ class StreamlineIntegrator:
 # Example Usage
 if __name__ == "__main__":
     # Initialize the streamline integrator with specific parameters
-    integrator = StreamlineIntegrator(gamma=1.2, M1=10.0, theta_s=20)
+    integrator = StreamlineIntegrator(gamma=1.2, M1=10.0, theta_s=np.radians(20))
 
     # Extract leading-edge points from a file
     file_path = 'src/inputs/LeadingEdgeData_LeftSide.nmb'
