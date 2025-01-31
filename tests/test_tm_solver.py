@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from src.taylor_maccoll_solver import TaylorMaccollSolver
+from taylor_maccoll_solver import TaylorMaccollSolver
 
 # Fixture to initialize the solver instance
 @pytest.fixture
@@ -43,7 +43,7 @@ def test_taylor_maccoll_system(solver):
 
 def test_solve(solver):
     """
-    Test the Taylor-Maccoll solver by asserting the first (shock) and last (cone) values of theta.
+    Test the Taylor-Maccoll solver by asserting the resultant cone angle.
     """
     # Initial conditions
     # Values come from M1 = 10 and gamma = 1.4 @ wave angle of 30deg
@@ -53,11 +53,16 @@ def test_solve(solver):
     dVr0 = 0.097590007       # Initial derivative of Vr ~ V_theta
 
     # Call the solve function
-    theta_c, _, _ = solver.solve(theta0, Vr0, dVr0)
+    theta_c, Vr, dVr = solver.solve(theta0, Vr0, dVr0)
     theta_c = np.degrees(theta_c) # Convert from rad to deg for easier comparison
-    # Expected first and last Theta values (replace with known benchmarks if available)
+    # Expected cone angle
     expected_theta_c = 26.5909011  # Expected cone angle
+    expected_Mc = 3.13659024    # Expected Mach at cone angle.
     
     # Assert first and last Theta values
     assert np.isclose(theta_c, expected_theta_c, rtol=0.01), \
         f"Cone angle mismatch: {theta_c} != {expected_theta_c}"
+    print(Vr)
+    Mc = solver.calculate_Mach_from_components(Vr, dVr)
+    assert np.isclose(Mc, expected_Mc, rtol=0.01), \
+        f"Mach_c mismatch: {Mc} != {expected_Mc}"

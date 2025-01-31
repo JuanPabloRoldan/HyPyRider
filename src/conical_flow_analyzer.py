@@ -62,6 +62,7 @@ class ConicalFlowAnalyzer:
         """
         # Solve for cone angle and initial velocity components
         theta_c, V_r0, V_theta0 = self.solve_taylor_maccoll(theta_s)
+        print(f'V_r0={V_r0}\tV_theta0={V_theta0}')
 
         # Tabulate results from shock to cone
         df = self.tm_solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r0, V_theta0)

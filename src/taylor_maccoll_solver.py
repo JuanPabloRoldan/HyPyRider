@@ -76,6 +76,12 @@ class TaylorMaccollSolver:
         # Return the computed values
         return V_prime, V_r, V_theta
 
+    def calculate_Mach_from_components(self, Vr, dVr,):
+        V = np.sqrt(Vr ** 2 + dVr ** 2)
+        temp = ( 1 / V ** 2 ) - 1
+        M = np.sqrt((2 / temp) / (self.gamma - 1))
+        return M
+
     def taylor_maccoll_system(self, theta, Vr, dVr):
         '''
         Defines the Taylor-Maccoll ODE system.
@@ -174,12 +180,14 @@ class TaylorMaccollSolver:
         '''
         theta = theta0
         Vr = Vr0
+        print(dVr0)
         dVr = dVr0
 
         while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
+            # print(dVr)
 
         # Return final values
         return theta, Vr, dVr
@@ -195,9 +203,10 @@ class TaylorMaccollSolver:
         theta_c : float
             Cone angle (radians).
         Vr0 : float
-            Initial radial velocity.
+            Initial radial velocity at the cone angle.
         dVr0 : float
-            Initial derivative of Vr.
+            Initial derivative of Vr at the cone angle.
+            This value is equivalent to V_theta0.
 
         Returns
         -------
