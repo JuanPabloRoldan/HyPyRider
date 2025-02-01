@@ -41,16 +41,16 @@ class TaylorMaccollSolver:
         self.gamma = gamma
         self.h = step_size
 
-    def calculate_velocity_components(self, M2, theta_s, delta):
+    def calculate_velocity_components(self, M, theta, delta):
         '''
         Calculates and decomposes the normalized velocity magnitude (V') into its components.
 
         Parameters
         ----------
-        M2 : float
+        M : float
             Downstream Mach number (after the shock).
-        theta_s : float
-            Shock wave angle in radians.
+        theta : float
+            Angle from cone axis of symmetry in radians.
         delta : float
             Flow deflection angle in radians.
 
@@ -65,13 +65,13 @@ class TaylorMaccollSolver:
                 Tangential component of velocity (V'_theta, normalized).
         '''
         # Compute the normalized velocity magnitude
-        V_prime = (2 / ((self.gamma - 1) * M2**2) + 1) ** -0.5
+        V_prime = (2 / ((self.gamma - 1) * M**2) + 1) ** -0.5
 
         # Compute the radial velocity component (V_r)
-        V_r = V_prime * np.cos(theta_s - delta)
+        V_r = V_prime * np.cos(theta - delta)
 
         # Compute the tangential velocity component (V_theta)
-        V_theta = V_prime * np.sin(theta_s - delta)
+        V_theta = -V_prime * np.sin(theta - delta)
 
         # Return the computed values
         return V_prime, V_r, V_theta
@@ -203,7 +203,7 @@ class TaylorMaccollSolver:
         '''
         theta = theta0
         Vr = Vr0
-        dVr = dVr0
+        dVr = -dVr0
 
         while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
             # Perform RK4 step
@@ -240,7 +240,7 @@ class TaylorMaccollSolver:
         # Lists to store results
         results = [[theta, Vr, dVr]]  # Log initial conditions
 
-        while not np.isclose(theta, theta_s):  # Continue until reach shock angle
+        while abs(theta - theta_s) > 1e-3:  # Continue until reach shock angle
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
