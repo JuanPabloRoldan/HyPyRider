@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
-from taylor_maccoll_solver import TaylorMaccollSolver
+from src.taylor_maccoll_solver import TaylorMaccollSolver
 
 # Fixture to initialize the solver instance
 @pytest.fixture

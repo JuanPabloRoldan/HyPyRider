@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from oblique_shock_solver import ObliqueShockSolver
+from src.oblique_shock_solver import ObliqueShockSolver
 
 # Fixture to initialize the solver instance
 @pytest.fixture
