@@ -46,9 +46,13 @@ class StreamlineIntegrator:
 
         while theta > self.theta_c:
             debug_inner_counter += 1
-            if debug_inner_counter == 2:
-                break
+            # if debug_inner_counter == 10:
+            #     break
+            print(x)
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+            # x = r * np.cos(theta)
+            # print(x)
+
             alpha = np.arctan(abs(z / y))
 
             dt = 0.02
@@ -56,22 +60,32 @@ class StreamlineIntegrator:
             # Interpolate V_r and V_theta from tabulated data
             V_r = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
             V_theta = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
-            print(f'Vr={V_r}\tVtheta={V_theta}')
+            # print(f'Vr={V_r}\tVtheta={V_theta}')
 
             # Update theta and r
             d_theta = V_theta * dt / r
+            # print(f'theta={theta}')
             theta += d_theta
+            print(f'theta={theta}')
 
-            r += V_r * dt
+            # print(f'r={r}')
+            r += (V_r * dt)
+            # print(f'r={r}')
             w = np.sqrt(y ** 2 + z ** 2)
 
             # Update coordinates
+            print(f'x={x}')
             x = r * np.cos(theta)
-            y = w * np.cos(alpha)
+            print(f'x={x}')
+            # print(f'y={y}')
+            y = -w * np.cos(alpha)
+            # print(f'y={y}')
+            # print(f'z={z}')
             z = w * np.sin(alpha)
+            # print(f'z={z}')
 
-            print(f'theta={np.degrees(theta)}')
-            print(f'x={x}\ty={y}\tz={z}')
+            # print(f'theta={np.degrees(theta)}')
+            # print(f'x={x}\ty={y}\tz={z}')
 
     def create_lower_surface(self):
         """
@@ -112,7 +126,7 @@ class StreamlineIntegrator:
 # Example Usage
 if __name__ == "__main__":
     # Initialize the streamline integrator with specific parameters
-    integrator = StreamlineIntegrator(gamma=1.2, M1=10.0, theta_s=np.radians(20))
+    integrator = StreamlineIntegrator(gamma=1.4, M1=10.0, theta_s=np.radians(20))
 
     # Extract leading-edge points from a file
     file_path = 'src/inputs/LeadingEdgeData_LeftSide.nmb'
