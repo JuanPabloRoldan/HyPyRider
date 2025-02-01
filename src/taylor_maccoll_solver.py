@@ -76,10 +76,33 @@ class TaylorMaccollSolver:
         # Return the computed values
         return V_prime, V_r, V_theta
 
-    def calculate_Mach_from_components(self, Vr, dVr,):
-        V = np.sqrt(Vr ** 2 + dVr ** 2)
-        temp = ( 1 / V ** 2 ) - 1
+    def calculate_Mach_from_components(self, V_r, V_theta):
+        '''
+        Calculates the Mach number from the radial and tangential velocity components.
+
+        Parameters
+        ----------
+        V_r : float
+            Radial component of velocity (V'_r, normalized).
+        V_theta : float
+            Tangential component of velocity (V'_theta, normalized).
+
+        Returns
+        -------
+        float
+            M : float
+                Computed Mach number.
+        '''
+        # Compute the normalized velocity magnitude (V')
+        V_prime = np.sqrt(V_r ** 2 + V_theta ** 2)
+
+        # Compute the inverse squared velocity magnitude term
+        temp = (1 / (V_prime ** 2)) - 1
+
+        # Compute the Mach number (M) from the velocity magnitude
         M = np.sqrt((2 / temp) / (self.gamma - 1))
+
+        # Return the computed Mach number
         return M
 
     def taylor_maccoll_system(self, theta, Vr, dVr):
@@ -180,14 +203,12 @@ class TaylorMaccollSolver:
         '''
         theta = theta0
         Vr = Vr0
-        print(dVr0)
         dVr = dVr0
 
         while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
-            # print(dVr)
 
         # Return final values
         return theta, Vr, dVr
@@ -203,10 +224,9 @@ class TaylorMaccollSolver:
         theta_c : float
             Cone angle (radians).
         Vr0 : float
-            Initial radial velocity at the cone angle.
+            Initial radial velocity.
         dVr0 : float
-            Initial derivative of Vr at the cone angle.
-            This value is equivalent to V_theta0.
+            Initial derivative of Vr.
 
         Returns
         -------

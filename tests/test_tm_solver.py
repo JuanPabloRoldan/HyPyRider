@@ -28,6 +28,20 @@ def test_calculate_velocity_components(solver):
     assert np.isclose(V_r, expected_V_r, atol=1e-3)
     assert np.isclose(V_theta, expected_V_theta, atol=1e-3)
 
+def test_calculate_Mach_from_components(solver):
+    """
+    Test the calculation of the Mach number of the flow
+    given its normalized velocity components.
+    """
+    # This is the inverse case of test_calculate_velocity_components()
+    V_r = 0.845154249
+    V_theta = 0.097590007
+    
+    M = solver.calculate_Mach_from_components(V_r, V_theta)
+
+    expected_M = 3.61986846
+    assert np.isclose(M, expected_M, atol=1e-3)
+
 def test_taylor_maccoll_system(solver):
     """
     Test the Taylor-Maccoll 2nd order differential equation system
@@ -54,10 +68,15 @@ def test_solve(solver):
 
     # Call the solve function
     theta_c, Vr, dVr = solver.solve(theta0, Vr0, dVr0)
+    
+    # Assert V_theta ~ 0 (this is true at the cone angle)
+    assert np.isclose(dVr, 0, atol=0.01), \
+        f"Solver did not return a value of 0 for V_theta."
+
     theta_c = np.degrees(theta_c) # Convert from rad to deg for easier comparison
     # Expected cone angle
     expected_theta_c = 26.5909011  # Expected cone angle
-    expected_Mc = 3.13659024    # Expected Mach at cone angle.
+    expected_Mc = 3.57846955    # Expected Mach at cone angle.
     
     # Assert first and last Theta values
     assert np.isclose(theta_c, expected_theta_c, rtol=0.01), \
