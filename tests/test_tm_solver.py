@@ -95,7 +95,6 @@ def test_tabulate_from_shock_to_cone(solver):
     V_prime, V_r, V_theta = solver.calculate_velocity_components(Mc, theta_c, theta_c)
 
     df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r, V_theta)
-    df.to_csv("output.txt", sep="\t", index=False)
 
     tab_cone = df.iloc[0]
     tab_theta_c = tab_cone["Theta (radians)"]
