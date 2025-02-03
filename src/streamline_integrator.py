@@ -68,7 +68,10 @@ class StreamlineIntegrator:
             z = w * np.sin(alpha)
 
             # Store points with streamline ID and order
-            streamline_points.append([x, y, z, streamline_id, order])
+            streamline_points.append([x * self.ref_length, 
+                                      y * self.ref_length, 
+                                      z * self.ref_length, streamline_id, order])
+            
             order += 1
 
             if np.isclose(theta, self.theta_c, rtol=0.01):
