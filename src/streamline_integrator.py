@@ -46,6 +46,13 @@ class StreamlineIntegrator:
         streamline_points = []
         order = 0 # tracks # of points in a streamline
 
+        # Store the initial point
+        streamline_points.append([x * self.ref_length, 
+                                  y * self.ref_length, 
+                                  z * self.ref_length, streamline_id, order])
+
+        order +=1
+
         while x < self.ref_length:
             
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
@@ -155,6 +162,66 @@ class StreamlineIntegrator:
 
         print(f"Streamline data saved to {filename}")
 
+    def export_streamlines_dat(self, filename):
+        """
+        Exports the streamlines to a .dat file in a column format (x y z streamline_id order),
+        with tab delimiters and the number of points at the top of each segment.
+
+        Parameters:
+            filename (str): Name of the output .dat file.
+
+        Returns:
+            None
+        """
+        output_dir = "src/outputs"
+        os.makedirs(output_dir, exist_ok=True)
+        filepath = os.path.join(output_dir, filename)
+
+        with open(filepath, "w") as f:
+            # Sort streamline data by ID and order to ensure proper ordering
+            self.streamline_data.sort(key=lambda p: (p[3], p[4]))
+            
+            # Extract unique streamline IDs
+            streamline_ids = sorted(set(point[3] for point in self.streamline_data))
+            
+            # Store first and last points to create connectivity segments
+            first_points = []
+            last_points = []
+
+            for streamline_id in streamline_ids:
+                streamline = [p for p in self.streamline_data if p[3] == streamline_id]
+
+                # Store the first and last points
+                first_points.append(streamline[0])
+                last_points.append(streamline[-1])
+
+                # Write the number of points in the streamline
+                f.write(f"{len(streamline)}\n")
+
+                # Write the coordinates with streamline_id and order
+                for x, y, z, s_id, order in streamline:
+                    f.write(f"{x}\t{y}\t{z}\t{s_id}\t{order}\n")
+
+            # Write connectivity segments between streamlines
+            f.write("\n# Connectivity segments between streamlines\n")
+            
+            for i in range(len(first_points) - 1):
+                # First point to first point connection
+                x1, y1, z1, s_id1, order1 = first_points[i]
+                x2, y2, z2, s_id2, order2 = first_points[i + 1]
+                f.write(f"2\n")
+                f.write(f"{x1}\t{y1}\t{z1}\t{s_id1}\t{order1}\n")
+                f.write(f"{x2}\t{y2}\t{z2}\t{s_id2}\t{order2}\n")
+
+                # Last point to last point connection
+                x1, y1, z1, s_id1, order1 = last_points[i]
+                x2, y2, z2, s_id2, order2 = last_points[i + 1]
+                f.write(f"2\n")
+                f.write(f"{x1}\t{y1}\t{z1}\t{s_id1}\t{order1}\n")
+                f.write(f"{x2}\t{y2}\t{z2}\t{s_id2}\t{order2}\n")
+
+        print(f"Streamline segment data saved to {filename}")
+
 # Example Usage
 if __name__ == "__main__":
     # Initialize the streamline integrator with specific parameters
@@ -166,6 +233,8 @@ if __name__ == "__main__":
 
     # Create the lower surface by tracing streamlines
     integrator.create_lower_surface()
+
+    integrator.export_streamlines_dat("streamlines.dat")
 
     # Export streamlines for ParaView visualization
     integrator.export_streamlines_vtk("streamlines.vtk")
