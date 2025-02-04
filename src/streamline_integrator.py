@@ -52,12 +52,12 @@ class StreamlineIntegrator:
                                 y * self.ref_length, 
                                 z * self.ref_length, streamline_id, order])
         order += 1  # Increment order before stepping forward
-
+        alpha = np.arctan(abs(z / y))
 
         while x < self.ref_length:
             
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-            alpha = np.arctan(abs(z / y))
+            # alpha = np.arctan(abs(z / y))
             dt = 0.02
 
             # Interpolate V_r and V_theta from tabulated data
@@ -68,10 +68,12 @@ class StreamlineIntegrator:
             d_theta = V_theta * dt / r
             theta += d_theta
             r += (V_r * dt)
-            w = np.sqrt(y ** 2 + z ** 2)
+            # w = np.sqrt(y ** 2 + z ** 2)
+            w = r * np.sin(theta)
 
             # Update coordinates
             x = r * np.cos(theta)
+            # y = -w * np.cos(alpha)
             y = -w * np.cos(alpha)
             z = w * np.sin(alpha)
 
