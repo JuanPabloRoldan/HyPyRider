@@ -52,9 +52,10 @@ class StreamlineIntegrator:
                                 y * self.ref_length, 
                                 z * self.ref_length, streamline_id, order])
         order += 1  # Increment order before stepping forward
+        
         alpha = np.arctan(abs(z / y))
 
-        while x < self.ref_length:
+        while x < 1:
             
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
             # alpha = np.arctan(abs(z / y))
@@ -68,12 +69,10 @@ class StreamlineIntegrator:
             d_theta = V_theta * dt / r
             theta += d_theta
             r += (V_r * dt)
-            # w = np.sqrt(y ** 2 + z ** 2)
             w = r * np.sin(theta)
 
             # Update coordinates
             x = r * np.cos(theta)
-            # y = -w * np.cos(alpha)
             y = -w * np.cos(alpha)
             z = w * np.sin(alpha)
 
@@ -86,6 +85,9 @@ class StreamlineIntegrator:
 
             if np.isclose(theta, self.theta_c, rtol=0.01):
                 break
+
+        # Set last point x-coordinate to ref_length
+        streamline_points[-1][0] = self.ref_length
 
         # Append streamline points to global data
         self.streamline_data.extend(streamline_points)
@@ -119,52 +121,6 @@ class StreamlineIntegrator:
             # Trace the streamline for the current LE point
             self.trace_streamline(x, y, z, streamline_id=index)
 
-    def export_streamlines_vtk(self, filename):
-        """
-        Exports the streamlines to a VTK file for visualization.
-
-        Parameters:
-            filename (str): Name of the output VTK file.
-        
-        Returns:
-            None
-        """
-        # Ensure the output directory exists
-        output_dir = "src/outputs"
-        os.makedirs(output_dir, exist_ok=True)
-        filepath = os.path.join(output_dir, filename)
-
-        with open(filepath, "w") as f:
-            f.write("# vtk DataFile Version 3.0\n")
-            f.write('Streamline Data\n')
-            f.write("ASCII\n")
-            f.write("DATASET POLYDATA\n")
-
-            # Write all points
-            f.write(f"POINTS {len(self.streamline_data)} float\n")
-            for p in self.streamline_data:
-                f.write(f"{p[0]} {p[1]} {p[2]}\n")
-            
-            # Write connectivity (polylines for each streamline)
-            streamline_ids = list(set([p[3] for p in self.streamline_data]))  # Unique streamline IDs
-            f.write(f"\nLINES {len(streamline_ids)} {len(self.streamline_data) + len(streamline_ids)}\n")
-
-            last_id = -1
-            line_points = []
-            for i, p in enumerate(self.streamline_data):
-                if p[3] != last_id:
-                    if last_id != -1:
-                        f.write(f"{len(line_points)} " + " ".join(map(str, line_points)) + "\n")
-                    last_id = p[3]
-                    line_points = []
-                line_points.append(i)
-
-            # Write last streamline
-            if line_points:
-                f.write(f"{len(line_points)} " + " ".join(map(str, line_points)) + "\n")
-
-        print(f"Streamline data saved to {filename}")
-
     def export_streamlines_dat(self, filename):
         """
         Exports the streamlines to a .dat file in a column format (x y z),
@@ -182,7 +138,11 @@ class StreamlineIntegrator:
 
         with open(filepath, "w") as f:
             for streamline_id in set(point[3] for point in self.streamline_data):
+                # Filter out points that exceed ref_length
                 streamline = [p for p in self.streamline_data if p[3] == streamline_id]
+                
+                if not streamline or len(streamline) == 1:
+                    continue
                 
                 # Write the number of points in the streamline
                 f.write(f"{len(streamline)}\n")
@@ -193,19 +153,64 @@ class StreamlineIntegrator:
 
         print(f"Streamline segment data saved to {filename}")
 
+    def close_streamline_segments(self, filename):
+        """
+        Closes the segments by adding additional segments connecting the first points 
+        and last points of adjacent streamlines.
+
+        Parameters:
+            filename (str): Name of the output .dat file.
+
+        Returns:
+            None
+        """
+        output_dir = "src/outputs"
+        filepath = os.path.join(output_dir, filename)
+
+        # Get sorted unique streamline IDs
+        streamline_ids = sorted(set(point[3] for point in self.streamline_data))
+
+        # Extract first and last points of each streamline
+        first_points = []
+        last_points = []
+        for streamline_id in streamline_ids:
+            streamline = [p for p in self.streamline_data if p[3] == streamline_id]
+            if streamline:
+                first_points.append(streamline[0])  # First point of the streamline
+                last_points.append(streamline[-1])  # Last point of the streamline
+
+        # Append new segments to the file
+        with open(filepath, "a") as f:
+
+            # Connect first points of adjacent streamlines
+            for i in range(len(first_points) - 1):
+                f.write(f"2\n")
+                f.write(f"{first_points[i][0]}\t{first_points[i][1]}\t{first_points[i][2]}\n")
+                f.write(f"{first_points[i + 1][0]}\t{first_points[i + 1][1]}\t{first_points[i + 1][2]}\n")
+
+            # Connect last points of adjacent streamlines
+            for i in range(len(last_points) - 1):
+                f.write(f"2\n")
+                f.write(f"{last_points[i][0]}\t{last_points[i][1]}\t{last_points[i][2]}\n")
+                f.write(f"{last_points[i + 1][0]}\t{last_points[i + 1][1]}\t{last_points[i + 1][2]}\n")
+
+        print(f"Closing segments appended to {filename}") 
+
 # Example Usage
 if __name__ == "__main__":
     # Initialize the streamline integrator with specific parameters
-    integrator = StreamlineIntegrator(gamma=1.4, M1=10.0, theta_s=np.radians(35))
+    integrator = StreamlineIntegrator(gamma=1.2, M1=10.0, theta_s=np.radians(20))
 
     # Extract leading-edge points from a file
-    file_path = 'src/inputs/35degree_1unit_LE.nmb'
+    file_path = 'src/inputs/LeadingEdgeData_LeftSide.nmb'
     integrator.LE_points = process_LE_points.extract_points_from_file(file_path)
 
     # Create the lower surface by tracing streamlines
     integrator.create_lower_surface()
 
-    integrator.export_streamlines_dat("streamlines.dat")
+    # Export streamline data
+    dat_filename = "streamlines.dat"
+    integrator.export_streamlines_dat(dat_filename)
 
-    # Export streamlines for ParaView visualization
-    integrator.export_streamlines_vtk("streamlines.vtk")
+    # Close the streamline segments
+    integrator.close_streamline_segments(dat_filename)
