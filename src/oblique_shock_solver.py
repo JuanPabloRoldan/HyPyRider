@@ -85,7 +85,17 @@ class ObliqueShockSolver:
         M2_normal = np.sqrt(M2_normal_squared)
         M2 = M2_normal / np.sin(theta_s - delta)
 
-        return delta, M2
+        
+        # Calculate pressure ratio (P2/P1)
+        P2_P1 = 1 + (2 * self.gamma / (self.gamma - 1)) * (M1_normal**2 - 1)
+    
+        # Calculate density ratio (rho2/rho1)
+        rho2_rho1 = (self.gamma + 1) * M1_normal**2 / ((self.gamma - 1) * M1_normal**2 + 2)
+        
+        # Calculate temperature ratio (T2/T1)
+        T2_T1 = P2_P1 / rho2_rho1
+
+        return delta, M2,P2_P1,rho2_rho1,T2_T1
 
     def calculate_post_shock_conditions(self, M1, theta_s):
         '''
