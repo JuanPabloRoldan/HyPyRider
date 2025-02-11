@@ -87,7 +87,35 @@ class SurfaceMeshAnalyzer:
 
         for i in range(len(lower_surface_mesh.vectors)):
             print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
+   
+    def calculate_cp(self, angles, M1, P2_over_P1):
+        """
+        Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
+        Parameters
+        ----------
+        P2_over_P1 : float
+            Pressure relation from mach tables
+        M1 : float
+            Mach number
+        angles : 
+            Angle from the unit normal vector
+
+        Returns
+        -------
+            - Cp: Pressure distribution given unit normal angle with the freestream
+            - post_shock_stagnation_Cp: Cp downstream of the shock
+        """
+        
+        #Newtonian modified theory
+        Cpt = (((P2_over_P1)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
+        Cp = Cpt*np.cos(angles)**2
+
+        return {
+            "Cp": Cp, #Use this one for surface calculations
+            "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
+        }
+        
 # Example usage:
 if __name__ == "__main__":
     freestream_dir = [1, 0, 0]  # Flow along the x-axis
