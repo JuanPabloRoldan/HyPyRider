@@ -57,63 +57,61 @@ class ObliqueShockSolver:
         delta = np.arctan(1 / cot_delta)
         return delta
 
-    def calculate_post_shock_mach_and_deflection(self, M1, theta_s):
-        '''
-            Calculates the post-shock Mach number (M2) and flow deflection angle (delta).
+    def calculate_post_shock_conditions(self, M1, theta_s):
+        """
+        Calculates the post-shock conditions, including the downstream Mach number (M2), 
+        flow deflection angle (delta), and thermodynamic property ratios.
 
-            Parameters
-            ----------
-            M1 : float
-                Freestream Mach number upstream of the shock.
-            theta_s : float
-                Shock wave angle in radians.
+        Parameters
+        ----------
+        M1 : float
+            Freestream Mach number upstream of the shock.
+        theta_s : float
+            Shock wave angle in radians.
 
-            Returns
-            -------
-            tuple
-                delta : float
+        Returns
+        -------
+        dict
+            {
+                "delta": float
                     Flow deflection angle in radians.
-                M2 : float
-                    Downstream Mach number (M2).
-        '''
-        # Calculate delta
+                "M2": float
+                    Downstream Mach number after the shock.
+                "P2_P1": float
+                    Pressure ratio across the shock (P2/P1).
+                "rho2_rho1": float
+                    Density ratio across the shock (rho2/rho1).
+                "T2_T1": float
+                    Temperature ratio across the shock (T2/T1).
+            }
+        """
+        # Compute the flow deflection angle (delta)
         delta = self.calculate_flow_deflection_angle(M1, theta_s)
 
-        # Calculate M2
+        # Compute the normal component of the upstream Mach number
         M1_normal = M1 * np.sin(theta_s)
-        M2_normal_squared = (1 + ((self.gamma - 1) / 2) * M1_normal**2) / (self.gamma * M1_normal**2 - 0.5 * (self.gamma - 1))
+
+        # Compute the normal component of the downstream Mach number (M2_normal)
+        M2_normal_squared = (1 + ((self.gamma - 1) / 2) * M1_normal**2) / \
+                            (self.gamma * M1_normal**2 - 0.5 * (self.gamma - 1))
         M2_normal = np.sqrt(M2_normal_squared)
+
+        # Compute the full downstream Mach number
         M2 = M2_normal / np.sin(theta_s - delta)
 
-        return delta, M2
+        # Compute the pressure ratio (P2/P1)
+        P2_P1 = 1 + (2 * self.gamma / (self.gamma + 1)) * (M1_normal**2 - 1)
 
-    def calculate_post_shock_conditions(self, M1, theta_s):
-        '''
-            Calculates the post-shock conditions including deflection angle, downstream Mach number,
-            and velocity components.
+        # Compute the density ratio (rho2/rho1)
+        rho2_rho1 = (self.gamma + 1) * M1_normal**2 / ((self.gamma - 1) * M1_normal**2 + 2)
 
-            Parameters
-            ----------
-            M1 : float
-                Freestream Mach number upstream of the shock.
-            theta_s : float
-                Shock wave angle in radians.
-
-            Returns
-            -------
-            dict
-                A dictionary with the following keys:
-                - delta: Flow deflection angle (radians).
-                - M2: Downstream Mach number.
-                - TODO: temp, pressure, and density ratios
-        '''
-        if theta_s <= 0 or theta_s >= np.pi / 2:
-            raise ValueError("Shock angle must be between 0 and 90 degrees (exclusive).")
-
-        # Calculate delta and M2
-        delta, M2 = self.calculate_post_shock_mach_and_deflection(M1, theta_s)
+        # Compute the temperature ratio (T2/T1)
+        T2_T1 = P2_P1 / rho2_rho1
 
         return {
             "delta": delta,
-            "M2": M2
+            "M2": M2,
+            "P2_P1": P2_P1,
+            "rho2_rho1": rho2_rho1,
+            "T2_T1": T2_T1
         }
