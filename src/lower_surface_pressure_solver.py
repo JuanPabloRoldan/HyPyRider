@@ -88,14 +88,12 @@ class SurfaceMeshAnalyzer:
         for i in range(len(lower_surface_mesh.vectors)):
             print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
    
-    def calculate_cp(self, angles, M1, P2_over_P1):
+    def calculate_cp_modified_newtonian(self, angles, M1):
         """
         Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
         Parameters
         ----------
-        P2_over_P1 : float
-            Pressure relation from mach tables
         M1 : float
             Mach number
         angles : 
@@ -106,15 +104,34 @@ class SurfaceMeshAnalyzer:
             - Cp: Pressure distribution given unit normal angle with the freestream
             - post_shock_stagnation_Cp: Cp downstream of the shock
         """
-        
+        p_ratio = (1 + (self.gamma - 1) / 2 * M1**2)**(-self.gamma / (self.gamma - 1))
+
         #Newtonian modified theory
-        Cpt = (((P2_over_P1)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
-        Cp = Cpt*np.cos(angles)**2
+        Cpt = (((p_ratio)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
+        Cp_newtonian_mod = Cpt*np.cos(angles)**2
 
         return {
-            "Cp": Cp, #Use this one for surface calculations
+            "Cp_newtonian_mod": Cp_newtonian_mod, #Use this one for surface calculations
             "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
         }
+    
+    def newtonian_pressure_distribution(angles):
+        """
+        Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
+
+        Parameters
+        ----------
+        angles : 
+            Angle from the unit normal vector
+
+        Returns
+        -------
+            - Cp: Pressure distribution given unit normal angle with the freestream
+        """
+
+        Cp_newtonian = 2*np.sin(angles)**2
+
+        return Cp_newtonian
         
 # Example usage:
 if __name__ == "__main__":
