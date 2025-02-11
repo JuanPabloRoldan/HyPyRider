@@ -1,53 +1,99 @@
-import numpy
+import numpy as np
 from stl import mesh
 
-def import_lower_surface_mesh():
-    """
-    Imports the lower surface mesh from the stl file.
-    
-    Returns:
-        lower_surface_mesh (numpy array): The lower surface mesh.
-    """
-    # Import the pointwise stl file:
-    lower_surface_mesh = mesh.Mesh.from_file('LowerSurfaceM10-20deg-Meshed.stl')
-    return lower_surface_mesh
+class SurfaceMeshAnalyzer:
+    def __init__(self, file_path):
+        """
+        """
+        self.mesh = mesh.Mesh.from_file(file_path)
+        self.cell_areas = None
+        self.normal_vectors = None
+        self.angles = None
 
-def calculate_cell_area():
-    """
-    Using numpy, calculate the area of each cell in the lower surface mesh.
+    def calculate_cell_area(self):
+        """
+        Calculate the area of each cell in the lower surface mesh.
+        """
+        # # Calculate the area of each cell in the lower surface mesh
+        # cell_areas = numpy.linalg.norm(numpy.cross(lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 1], lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 2])) / 2
+        # return cell_areas
+        V0 = self.mesh.vectors[:, 0]  # First vertex of each triangle
+        V1 = self.mesh.vectors[:, 1]  # Second vertex
+        V2 = self.mesh.vectors[:, 2]  # Third vertex
 
-    """
-    # Calculate the area of each cell in the lower surface mesh
-    cell_areas = numpy.linalg.norm(numpy.cross(lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 1], lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 2])) / 2
-    return cell_areas
+        # Compute cross product of two edge vectors
+        cross_product = np.cross(V1 - V0, V2 - V0)
 
-def calculate_normal_vector():
-    """
-    Using numpy, calculate the normal vector of each cell in the lower surface mesh.
+        # Compute triangle area (magnitude of cross-product divided by 2)
+        self.cell_areas = 0.5 * np.linalg.norm(cross_product, axis=1)
 
-    """
-    # Calculate the normal vector of each cell in the lower surface mesh
-    normal_vectors = numpy.cross(lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 1], lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 2])
-    return normal_vectors
+    def calculate_normal_vector(self):
+        """
+        Calculate the normal vector of each cell in the lower surface mesh.
+        """
+        # # Calculate the normal vector of each cell in the lower surface mesh
+        # normal_vectors = numpy.cross(lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 1], lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 2])
+        # return normal_vectors
+        V0 = self.mesh.vectors[:, 0]
+        V1 = self.mesh.vectors[:, 1]
+        V2 = self.mesh.vectors[:, 2]
 
-def calculate_angle_from_normal_vector():
-    """
-    Using numpy, calculate the angle from the normal vector to the free-stream direction.
+        # Compute normal vectors using the right-hand rule
+        normal_vectors = np.cross(V1 - V0, V2 - V0)
 
-    """
-    # Calculate the angle from the normal vector to the free-stream direction
-    angle_from_normal_vector = numpy.arccos(numpy.dot(normal_vectors, [0, 0, 1]) / (numpy.linalg.norm(normal_vectors) * numpy.linalg.norm([0, 0, 1])))
-    return angle_from_normal_vector
+        # Normalize the vectors (avoid division by zero)
+        self.normal_vectors = normal_vectors / np.linalg.norm(normal_vectors, axis=1)[:, np.newaxis]
 
-def lower_surface_solver():
-    """
-    Loop through the cells in the lower surface mesh and calculate the cell area, normal vector, and angle from the normal vector to the free-stream direction.
-    """
+    def calculate_angle_from_normal_vector(self, freestream_direction):
+        """
+        Calculate the angle from the normal vector to the free-stream direction.
+        """
+        # # Calculate the angle from the normal vector to the free-stream direction
+        # angle_from_normal_vector = numpy.arccos(numpy.dot(normal_vectors, [0, 0, 1]) / (numpy.linalg.norm(normal_vectors) * numpy.linalg.norm([0, 0, 1])))
+        # return angle_from_normal_vector
 
-    lower_surface_mesh = import_lower_surface_mesh()
-    cell_areas = calculate_cell_area()
-    normal_vectors = calculate_normal_vector()
-    angle_from_normal_vector = calculate_angle_from_normal_vector()
+        if self.normal_vectors is None:
+            self.calculate_normal_vector()
 
-    for i in range(len(lower_surface_mesh.vectors)):
-        print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
+        freestream_direction = np.array(freestream_direction)  # Ensure it's a NumPy array
+        freestream_direction = freestream_direction.astype(np.float64)  # Convert to float
+        freestream_direction /= np.linalg.norm(freestream_direction)  # Normalize
+
+        # Compute dot product row-wise
+        dot_products = np.einsum('ij,j->i', self.normal_vectors, freestream_direction)
+
+        # Compute angles using arccos (clip values to avoid numerical issues)
+        angles = np.arccos(np.clip(dot_products, -1.0, 1.0))
+
+        return angles
+
+    def analyze_mesh(self, freestream_direction):
+        """
+        Computes cell areas, normal vectors, and angles for a given freestream direction.
+        """
+        self.calculate_cell_area()
+        self.calculate_normal_vector()
+        self.angles = self.calculate_angle_from_normal_vector(freestream_direction)
+
+    def lower_surface_solver():
+        """
+        Loop through the cells in the lower surface mesh and calculate the cell area, normal vector, and angle from the normal vector to the free-stream direction.
+        """
+
+        lower_surface_mesh = import_lower_surface_mesh()
+        cell_areas = calculate_cell_area()
+        normal_vectors = calculate_normal_vector()
+        angle_from_normal_vector = calculate_angle_from_normal_vector()
+
+        for i in range(len(lower_surface_mesh.vectors)):
+            print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
+
+# Example usage:
+if __name__ == "__main__":
+    freestream_dir = [1, 0, 0]  # Flow along the x-axis
+    analyzer = SurfaceMeshAnalyzer("src/inputs/LowerSurfaceM10-20deg-Meshed.stl")
+    analyzer.analyze_mesh(freestream_dir)
+    for i in range(len(analyzer.mesh.vectors)):
+            print(f'Cell {i}: Area = {analyzer.cell_areas[i]:.6f}, '
+                  f'Normal Vector = {analyzer.normal_vectors[i]}, '
+                  f'Angle (deg) = {np.degrees(analyzer.angles[i]):.2f}')
