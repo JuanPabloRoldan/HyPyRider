@@ -29,28 +29,28 @@ import pandas as pd
 class TaylorMaccollSolver:
     def __init__(self, gamma=1.4, step_size=0.0001):
         '''
-            Initializes the Taylor-Maccoll solver with default parameters.
+        Initializes the Taylor-Maccoll solver with default parameters.
 
-            Parameters
-            ----------
-            gamma : float
-                Specific heat ratio, default is 1.4 for air.
-            step_size : float
-                Integration step size in radians.
+        Parameters
+        ----------
+        gamma : float
+            Specific heat ratio, default is 1.4 for air.
+        step_size : float
+            Integration step size in radians.
         '''
         self.gamma = gamma
         self.h = step_size
 
-    def calculate_velocity_components(self, M2, theta_s, delta):
+    def calculate_velocity_components(self, M, theta, delta):
         '''
         Calculates and decomposes the normalized velocity magnitude (V') into its components.
 
         Parameters
         ----------
-        M2 : float
+        M : float
             Downstream Mach number (after the shock).
-        theta_s : float
-            Shock wave angle in radians.
+        theta : float
+            Angle from cone axis of symmetry in radians.
         delta : float
             Flow deflection angle in radians.
 
@@ -65,34 +65,63 @@ class TaylorMaccollSolver:
                 Tangential component of velocity (V'_theta, normalized).
         '''
         # Compute the normalized velocity magnitude
-        V_prime = (2 / ((self.gamma - 1) * M2**2) + 1) ** -0.5
+        V_prime = (2 / ((self.gamma - 1) * M**2) + 1) ** -0.5
 
         # Compute the radial velocity component (V_r)
-        V_r = V_prime * np.cos(theta_s - delta)
+        V_r = V_prime * np.cos(theta - delta)
 
         # Compute the tangential velocity component (V_theta)
-        V_theta = V_prime * np.sin(theta_s - delta)
+        V_theta = -V_prime * np.sin(theta - delta)
 
         # Return the computed values
         return V_prime, V_r, V_theta
 
+    def calculate_Mach_from_components(self, V_r, V_theta):
+        '''
+        Calculates the Mach number from the radial and tangential velocity components.
+
+        Parameters
+        ----------
+        V_r : float
+            Radial component of velocity (V'_r, normalized).
+        V_theta : float
+            Tangential component of velocity (V'_theta, normalized).
+
+        Returns
+        -------
+        float
+            M : float
+                Computed Mach number.
+        '''
+        # Compute the normalized velocity magnitude (V')
+        V_prime = np.sqrt(V_r ** 2 + V_theta ** 2)
+
+        # Compute the inverse squared velocity magnitude term
+        temp = (1 / (V_prime ** 2)) - 1
+
+        # Compute the Mach number (M) from the velocity magnitude
+        M = np.sqrt((2 / temp) / (self.gamma - 1))
+
+        # Return the computed Mach number
+        return M
+
     def taylor_maccoll_system(self, theta, Vr, dVr):
         '''
-            Defines the Taylor-Maccoll ODE system.
+        Defines the Taylor-Maccoll ODE system.
 
-            Parameters
-            ----------
-            theta : float
-                Angle of the position vector from the cone vertex (radians).
-            Vr : float
-                Radial component of velocity (normalized).
-            dVr : float
-                First derivative of Vr with respect to theta.
+        Parameters
+        ----------
+        theta : float
+            Angle of the position vector from the cone vertex (radians).
+        Vr : float
+            Radial component of velocity (normalized).
+        dVr : float
+            First derivative of Vr with respect to theta.
 
-            Returns
-            -------
-            np.array
-                A 2-element array containing dVr and ddVr.
+        Returns
+        -------
+        np.array
+            A 2-element array containing dVr and ddVr.
         '''
         B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
         C = (2 * Vr + dVr / np.tan(theta))
@@ -103,21 +132,21 @@ class TaylorMaccollSolver:
 
     def rk4_step(self, theta, Vr, dVr):
         '''
-            Performs a single RK4 integration step for Taylor-Maccoll equations.
+        Performs a single RK4 integration step for Taylor-Maccoll equations.
 
-            Parameters
-            ----------
-            theta : float
-                Current angle (radians).
-            Vr : float
-                Current radial velocity.
-            dVr : float
-                Current derivative of radial velocity.
+        Parameters
+        ----------
+        theta : float
+            Current angle (radians).
+        Vr : float
+            Current radial velocity.
+        dVr : float
+            Current derivative of radial velocity.
 
-            Returns
-            -------
-            tuple
-                Updated values of Vr and dVr after one step.
+        Returns
+        -------
+        tuple
+            Updated values of Vr and dVr after one step.
         '''
         # K1 and M1
         K1, M1 = self.taylor_maccoll_system(theta, Vr, dVr)
@@ -156,37 +185,69 @@ class TaylorMaccollSolver:
 
     def solve(self, theta0, Vr0, dVr0):
         '''
-            Solves the Taylor-Maccoll equation and returns a DataFrame with results.
+        Solves the Taylor-Maccoll equation and returns the final values.
 
-            Parameters
-            ----------
-            theta0 : float
-                Initial angle (radians).
-            Vr0 : float
-                Initial radial velocity.
-            dVr0 : float
-                Initial derivative of Vr.
+        Parameters
+        ----------
+        theta0 : float
+            Initial angle (radians).
+        Vr0 : float
+            Initial radial velocity.
+        dVr0 : float
+            Initial derivative of Vr.
 
-            Returns
-            -------
-            pd.DataFrame
-                DataFrame containing Theta (degrees), V_r, and V_theta.
+        Returns
+        -------
+        tuple
+            cone angle (radians), V_r, and V_theta.
         '''
         theta = theta0
         Vr = Vr0
-        dVr = dVr0
-
-        # Lists to store results
-        results = [[np.degrees(theta), Vr, dVr]]  # Log initial conditions
+        dVr = -dVr0
 
         while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             theta += self.h
 
-            # Save current results (convert theta to degrees)
-            results.append([np.degrees(theta), Vr, dVr])
+        # Return final values
+        return theta, Vr, dVr
+    
+    def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0):
+        '''
+        Solves the Taylor-Maccoll equation and returns a DataFrame with results.
+
+        Parameters
+        ----------
+        theta_s : float
+            Shock angle (radians).
+        theta_c : float
+            Cone angle (radians).
+        Vr0 : float
+            Initial radial velocity.
+        dVr0 : float
+            Initial derivative of Vr.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame containing Theta (radians), V_r, and V_theta.
+        '''
+        theta = theta_c
+        Vr = Vr0
+        dVr = dVr0
+
+        # Lists to store results
+        results = [[theta, Vr, dVr]]  # Log initial conditions
+
+        while abs(theta - theta_s) > 1e-3:  # Continue until reach shock angle
+            # Perform RK4 step
+            Vr, dVr = self.rk4_step(theta, Vr, dVr)
+            theta += self.h
+
+            # Save current results
+            results.append([theta, Vr, dVr])
 
         # Create and return DataFrame
-        results_df = pd.DataFrame(results, columns=["Theta (degrees)", "V_r", "V_theta"])
+        results_df = pd.DataFrame(results, columns=["Theta (radians)", "V_r", "V_theta"])
         return results_df
