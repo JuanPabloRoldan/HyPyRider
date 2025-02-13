@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     altitude = 30000 # meters
     p_inf = calculate_pressure(altitude)
-    q_inf = calculate_dynamic_pressure(gamma=1.2, p_inf, M=10)
+    q_inf = calculate_dynamic_pressure(gamma=1.2, p=p_inf, M=10)
     stag_properties = {"P0":20000, "T0":150, "rho0":0.5}
     
 
