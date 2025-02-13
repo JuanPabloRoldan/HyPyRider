@@ -136,7 +136,7 @@ class SurfaceMeshAnalyzer:
         pv_mesh.cell_data["rho/rho0"] = self.cell_rho_rho0
         pv_mesh.cell_data["Cp Exact"] = self.cell_Cp_exact
         pv_mesh.cell_data["P Exact"] = self.cell_P_exact
-        pv_mesh.cell_data["angles"] = self.angles
+        pv_mesh.cell_data["angles"] = np.degrees(self.angles)
 
         # Save as VTK
         pv_mesh.save(output_filename)
