@@ -79,7 +79,7 @@ class SurfaceMeshAnalyzer:
         self.calculate_normal_vector()
         self.angles = self.calculate_angle_from_normal_vector(freestream_direction)
 
-    def calculate_exact_pressure_coefficient(self, TM_tabulation):
+    def calculate_exact_pressure_coefficient(self, TM_tabulation,stag_properties,p_inf,q_inf):
         if self.angles is None:
             raise ValueError("Angles have not been computed. Run analyze_mesh() first.")
 
@@ -95,9 +95,16 @@ class SurfaceMeshAnalyzer:
         rho_rho0_interp = interp1d(theta_ref, rho_rho0_ref, kind="linear", bounds_error=False, fill_value="extrapolate")
 
         self.cell_mach = mach_interp(self.angles)
-        self.cell_P_P0 = P_P0_interp(self.angles)
+        cell_P_P0 = P_P0_interp(self.angles)
         self.cell_T_T0 = T_T0_interp(self.angles)
         self.cell_rho_rho0 = rho_rho0_interp(self.angles)
+
+        # Look into stag_properties to get stagnation pressure (P0)
+        P0 = stag_properties["P0"]
+
+        # Find pressure per cell
+        self.cell_P_exact = P0 * cell_P_P0
+        self.cell_Cp_exact = (self.cell_P_exact-p_inf)/(q_inf)
 
     def export_to_vtk(self, output_filename="outputs/output.vtk"):
         """Exports the STL surface mesh with interpolated results as a VTK file."""
@@ -116,9 +123,11 @@ class SurfaceMeshAnalyzer:
 
         # Assign cell data (per triangle)
         pv_mesh.cell_data["Mach"] = self.cell_mach
-        pv_mesh.cell_data["P/P0"] = self.cell_P_P0
+        # pv_mesh.cell_data["P/P0"] = self.cell_P_P0
         pv_mesh.cell_data["T/T0"] = self.cell_T_T0
         pv_mesh.cell_data["rho/rho0"] = self.cell_rho_rho0
+        pv_mesh.cell_data["Cp Exact"] = self.cell_Cp_exact
+        pv_mesh.cell_data["P Exact"] = self.cell_P_exact
 
         # Save as VTK
         pv_mesh.save(output_filename)
@@ -156,5 +165,9 @@ if __name__ == "__main__":
     
     results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
 
-    analyzer.calculate_exact_pressure_coefficient(results_df)
+    stag_properties = {"P0":20000, "T0":150, "rho0":0.5}
+    p_inf = 1000
+    q_inf = 100
+
+    analyzer.calculate_exact_pressure_coefficient(results_df,stag_properties,p_inf,q_inf)
     analyzer.export_to_vtk("src/outputs/surface_analysis.vtk")
