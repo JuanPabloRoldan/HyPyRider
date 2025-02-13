@@ -3,6 +3,7 @@ import numpy as np
 from stl import mesh
 import pyvista as pv
 from scipy.interpolate import interp1d
+from src.velocity_altitude_map import calculate_pressure, calculate_dynamic_pressure
 
 class SurfaceMeshAnalyzer:
     def __init__(self, file_path):
@@ -165,9 +166,11 @@ if __name__ == "__main__":
     
     results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
 
+    altitude = 30000 # meters
+    p_inf = calculate_pressure(altitude)
+    q_inf = calculate_dynamic_pressure(gamma=1.2, p_inf, M=10)
     stag_properties = {"P0":20000, "T0":150, "rho0":0.5}
-    p_inf = 1000
-    q_inf = 100
+    
 
     analyzer.calculate_exact_pressure_coefficient(results_df,stag_properties,p_inf,q_inf)
     analyzer.export_to_vtk("src/outputs/surface_analysis.vtk")
