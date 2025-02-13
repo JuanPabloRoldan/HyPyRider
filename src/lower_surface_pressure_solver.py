@@ -138,7 +138,7 @@ class SurfaceMeshAnalyzer:
         -------
             - Cp_vehicle: Singular Cp value across entire vehicle. 
         """
-        Cp_vehicle = sum(Cp_input*self.cell_areas)/sum(self.cell_areas)
+        Cp_vehicle = np.sum(Cp_input*self.cell_areas)/np.sum(self.cell_areas)
 
         return Cp_vehicle
         
