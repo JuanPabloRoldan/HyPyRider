@@ -3,7 +3,7 @@ import numpy as np
 from stl import mesh
 import pyvista as pv
 from scipy.interpolate import interp1d
-from src.velocity_altitude_map import calculate_pressure, calculate_dynamic_pressure
+from velocity_altitude_map import calculate_pressure, calculate_dynamic_pressure
 
 class SurfaceMeshAnalyzer:
     def __init__(self, file_path):
@@ -33,11 +33,9 @@ class SurfaceMeshAnalyzer:
 
     def calculate_normal_vector(self):
         """
-        Calculate the normal vector of each cell in the lower surface mesh.
+        Calculate the normal vector of each cell in the lower surface mesh,
+        ensuring the y-component is always negative and normalizing the vectors.
         """
-        # # Calculate the normal vector of each cell in the lower surface mesh
-        # normal_vectors = numpy.cross(lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 1], lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 2])
-        # return normal_vectors
         V0 = self.mesh.vectors[:, 0]
         V1 = self.mesh.vectors[:, 1]
         V2 = self.mesh.vectors[:, 2]
@@ -45,8 +43,16 @@ class SurfaceMeshAnalyzer:
         # Compute normal vectors using the right-hand rule
         normal_vectors = np.cross(V1 - V0, V2 - V0)
 
+        # Identify normals with a positive y-component
+        flip_mask = normal_vectors[:, 1] > 0
+
+        # Negate incorrect normals
+        normal_vectors[flip_mask] *= -1
+
         # Normalize the vectors (avoid division by zero)
-        self.normal_vectors = normal_vectors / np.linalg.norm(normal_vectors, axis=1)[:, np.newaxis]
+        norms = np.linalg.norm(normal_vectors, axis=1)[:, np.newaxis]
+        norms[norms == 0] = 1  # Prevent division by zero
+        self.normal_vectors = normal_vectors / norms
 
     def calculate_angle_from_normal_vector(self, freestream_direction):
         """
@@ -68,6 +74,7 @@ class SurfaceMeshAnalyzer:
 
         # Compute angles using arccos
         angles = np.arccos(np.clip(dot_products, -1.0, 1.0))
+        angles = np.radians(180) - angles
         angles = np.radians(90) - angles
 
         return angles
@@ -112,8 +119,8 @@ class SurfaceMeshAnalyzer:
         output_dir = os.path.dirname(output_filename)
         os.makedirs(output_dir, exist_ok=True)  # Ensure directory exists
 
-        if self.cell_P_P0 is None or self.cell_T_T0 is None or self.cell_rho_rho0 is None:
-            raise ValueError("Run calculate_exact_pressure_coefficient() first.")
+        # if self.cell_P_P0 is None or self.cell_T_T0 is None or self.cell_rho_rho0 is None:
+        #     raise ValueError("Run calculate_exact_pressure_coefficient() first.")
 
         # Convert STL to PyVista Mesh
         points = self.mesh.vectors.reshape(-1, 3)  # Extract unique points
@@ -129,6 +136,7 @@ class SurfaceMeshAnalyzer:
         pv_mesh.cell_data["rho/rho0"] = self.cell_rho_rho0
         pv_mesh.cell_data["Cp Exact"] = self.cell_Cp_exact
         pv_mesh.cell_data["P Exact"] = self.cell_P_exact
+        pv_mesh.cell_data["angles"] = self.angles
 
         # Save as VTK
         pv_mesh.save(output_filename)
