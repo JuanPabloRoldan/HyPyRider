@@ -113,17 +113,45 @@ class SurfaceMeshAnalyzer:
             "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
         }
     
-    def newtonian_pressure_distribution(self):
+    def calculate_newtonian_values(self):
         """
         Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
         Parameters
         ----------
-        angles : float
-            Angle from the unit normal vector
+        Returns
+        -------
+            - Cl: Newtonian flow lift coefecient per cell
+            - Cd: Newtonian flow drag coefecient per cell
+            - Cp_newtonian: Newtonian Cp per cell
         """
         
         self.Cp_newtonian = 2*np.sin(self.angles)**2
+        self.Cd = 2*np.sin(self.angles)**3
+        self.Cl =  np.cos(self.angles)*2*np.sin(self.angles)**2
+
+        return{
+            "Cd": self.Cd,
+            "Cl": self.Cl,
+            "Cp_newtonian": self.Cp_newtonian
+        }
+
+    def lift_over_drag(self):
+        """
+        Use basic newtonian theory to calculate the lift over drag value per cell or per body
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+            - Cl_Cd: Lift over Drag of the vehicle
+        """
+        self.Cl_Cd = self.Cl/self.Cd
+
+        return{
+            "Cl_Cd": self.Cl_Cd
+        }
 
     def Cp_entire_vehcile(self,Cp_input):
         """
