@@ -88,7 +88,7 @@ class SurfaceMeshAnalyzer:
         for i in range(len(lower_surface_mesh.vectors)):
             print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
    
-    def calculate_cp_modified_newtonian(self, angles, M1):
+    def calculate_cp_modified_newtonian(self, M1):
         """
         Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
@@ -96,8 +96,6 @@ class SurfaceMeshAnalyzer:
         ----------
         M1 : float
             Mach number
-        angles : 
-            Angle from the unit normal vector
 
         Returns
         -------
@@ -108,30 +106,41 @@ class SurfaceMeshAnalyzer:
 
         #Newtonian modified theory
         Cpt = (((p_ratio)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
-        Cp_newtonian_mod = Cpt*np.cos(angles)**2
+        Cp_newtonian_mod = Cpt*np.cos(self.angles)**2
 
         return {
             "Cp_newtonian_mod": Cp_newtonian_mod, #Use this one for surface calculations
             "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
         }
     
-    def newtonian_pressure_distribution(angles):
+    def newtonian_pressure_distribution(self):
         """
         Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
         Parameters
         ----------
-        angles : 
+        angles : float
             Angle from the unit normal vector
+        """
+        
+        self.Cp_newtonian = 2*np.sin(self.angles)**2
+
+    def Cp_entire_vehcile(self,Cp_input):
+        """
+        apply a color to be ascociated with each triangle based on calculated Cp
+
+        Parameters
+        ----------
+        Cp_input: Array
+            Prefered Cp distribution
 
         Returns
         -------
-            - Cp: Pressure distribution given unit normal angle with the freestream
+            - Cp_vehicle: Singular Cp value across entire vehicle. 
         """
+        Cp_vehicle = sum(Cp_input*self.cell_areas)/sum(self.cell_areas)
 
-        Cp_newtonian = 2*np.sin(angles)**2
-
-        return Cp_newtonian
+        return Cp_vehicle
         
 # Example usage:
 if __name__ == "__main__":
