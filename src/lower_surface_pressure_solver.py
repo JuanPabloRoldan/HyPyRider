@@ -70,11 +70,12 @@ class SurfaceMeshAnalyzer:
         freestream_direction /= np.linalg.norm(freestream_direction)  # Normalize
 
         # Compute dot product row-wise
+        freestream_direction *= -1  # Flip direction
         dot_products = np.einsum('ij,j->i', self.normal_vectors, freestream_direction)
 
         # Compute angles using arccos
         angles = np.arccos(np.clip(dot_products, -1.0, 1.0))
-        angles = np.radians(180) - angles
+        # angles = np.radians(180) - angles
         angles = np.radians(90) - angles
 
         return angles
