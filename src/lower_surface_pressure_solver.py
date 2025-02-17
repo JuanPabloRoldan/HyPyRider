@@ -155,7 +155,89 @@ class SurfaceMeshAnalyzer:
 
         for i in range(len(lower_surface_mesh.vectors)):
             print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
+   
+    def calculate_cp_modified_newtonian(self, M1):
+        """
+        Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
+        Parameters
+        ----------
+        M1 : float
+            Mach number
+
+        Returns
+        -------
+            - Cp: Pressure distribution given unit normal angle with the freestream
+            - post_shock_stagnation_Cp: Cp downstream of the shock
+        """
+        p_ratio = (1 + (self.gamma - 1) / 2 * M1**2)**(-self.gamma / (self.gamma - 1))
+
+        #Newtonian modified theory
+        Cpt = (((p_ratio)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
+        Cp_newtonian_mod = Cpt*np.cos(self.angles)**2
+
+        return {
+            "Cp_newtonian_mod": Cp_newtonian_mod, #Use this one for surface calculations
+            "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
+        }
+    
+    def calculate_newtonian_values(self):
+        """
+        Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
+
+        Parameters
+        ----------
+        Returns
+        -------
+            - Cl: Newtonian flow lift coefecient per cell
+            - Cd: Newtonian flow drag coefecient per cell
+            - Cp_newtonian: Newtonian Cp per cell
+        """
+        
+        self.Cp_newtonian = 2*np.sin(self.angles)**2
+        self.Cd = 2*np.sin(self.angles)**3
+        self.Cl =  np.cos(self.angles)*2*np.sin(self.angles)**2
+
+        return{
+            "Cd": self.Cd,
+            "Cl": self.Cl,
+            "Cp_newtonian": self.Cp_newtonian
+        }
+
+    def lift_over_drag(self):
+        """
+        Use basic newtonian theory to calculate the lift over drag value per cell or per body
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+            - Cl_Cd: Lift over Drag of the vehicle
+        """
+        self.Cl_Cd = self.Cl/self.Cd
+
+        return{
+            "Cl_Cd": self.Cl_Cd
+        }
+
+    def Cp_entire_vehcile(self,Cp_input):
+        """
+        apply a color to be ascociated with each triangle based on calculated Cp
+
+        Parameters
+        ----------
+        Cp_input: Array
+            Prefered Cp distribution
+
+        Returns
+        -------
+            - Cp_vehicle: Singular Cp value across entire vehicle. 
+        """
+        Cp_vehicle = np.sum(Cp_input*self.cell_areas)/np.sum(self.cell_areas)
+
+        return Cp_vehicle
+        
 # Example usage:
 if __name__ == "__main__":
     freestream_dir = [1, 0, 0]  # Flow along the x-axis
