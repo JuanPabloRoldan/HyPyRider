@@ -88,7 +88,7 @@ class SurfaceMeshAnalyzer:
         self.calculate_normal_vector()
         self.angles = self.calculate_angle_from_normal_vector(freestream_direction)
 
-    def calculate_exact_pressure_coefficient(self, TM_tabulation,stag_properties,p_inf,q_inf):
+    def calculate_exact_pressure_coefficient(self, TM_tabulation, stag_properties, p_inf, q_inf):
         if self.angles is None:
             raise ValueError("Angles have not been computed. Run analyze_mesh() first.")
 
@@ -156,30 +156,30 @@ class SurfaceMeshAnalyzer:
         for i in range(len(lower_surface_mesh.vectors)):
             print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
    
-    def calculate_cp_modified_newtonian(self, M1):
-        """
-        Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
+    # def calculate_cp_modified_newtonian(self, M1):
+    #     """
+    #     Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
-        Parameters
-        ----------
-        M1 : float
-            Mach number
+    #     Parameters
+    #     ----------
+    #     M1 : float
+    #         Mach number
 
-        Returns
-        -------
-            - Cp: Pressure distribution given unit normal angle with the freestream
-            - post_shock_stagnation_Cp: Cp downstream of the shock
-        """
-        p_ratio = (1 + (self.gamma - 1) / 2 * M1**2)**(-self.gamma / (self.gamma - 1))
+    #     Returns
+    #     -------
+    #         - Cp: Pressure distribution given unit normal angle with the freestream
+    #         - post_shock_stagnation_Cp: Cp downstream of the shock
+    #     """
+    #     p_ratio = (1 + (self.gamma - 1) / 2 * M1**2)**(-self.gamma / (self.gamma - 1))
 
-        #Newtonian modified theory
-        Cpt = (((p_ratio)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
-        Cp_newtonian_mod = Cpt*np.cos(self.angles)**2
+    #     #Newtonian modified theory
+    #     Cpt = (((p_ratio)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
+    #     Cp_newtonian_mod = Cpt*np.cos(self.angles)**2
 
-        return {
-            "Cp_newtonian_mod": Cp_newtonian_mod, #Use this one for surface calculations
-            "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
-        }
+    #     return {
+    #         "Cp_newtonian_mod": Cp_newtonian_mod, #Use this one for surface calculations
+    #         "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
+    #     }
     
     def calculate_newtonian_values(self):
         """
@@ -240,7 +240,9 @@ class SurfaceMeshAnalyzer:
         
 # Example usage:
 if __name__ == "__main__":
+
     freestream_dir = [1, 0, 0]  # Flow along the x-axis
+
     analyzer = SurfaceMeshAnalyzer("src/inputs/LowerSurfaceM10-20deg-Meshed.stl")
     analyzer.analyze_mesh(freestream_dir)
     for i in range(len(analyzer.mesh.vectors)):
@@ -249,19 +251,37 @@ if __name__ == "__main__":
                   f'Angle (deg) = {np.degrees(analyzer.angles[i]):.2f}')
     
     from taylor_maccoll_solver import TaylorMaccollSolver
-    solver = TaylorMaccollSolver()
-    theta_s = np.radians(30)  # Example shock angle
-    theta_c = np.radians( 26.5909011)
-    Mc = 3.57846955
-    V_0, Vr0, dVr0 = solver.calculate_velocity_components(Mc, theta_c, theta_c)
+    tm_solver = TaylorMaccollSolver(gamma=1.2)
+
+    # Conical Shock Conditions at M=10, gamma=1.2
+    theta_s = np.radians(20)  # Example shock angle
+    theta_c = np.radians(18.1951829)
+    Mc = 6.41062720
+    V_0, Vr0, dVr0 = tm_solver.calculate_velocity_components(Mc, theta_c, theta_c)
     
-    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
+    results_df = tm_solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
 
     altitude = 30000 # meters
     p_inf = calculate_pressure(altitude)
     q_inf = calculate_dynamic_pressure(gamma=1.2, p=p_inf, M=10)
-    stag_properties = {"P0":20000, "T0":150, "rho0":0.5}
-    
 
-    analyzer.calculate_exact_pressure_coefficient(results_df,stag_properties,p_inf,q_inf)
+    from oblique_shock_solver import ObliqueShockSolver
+    os_solver = ObliqueShockSolver(gamma=1.2)
+    os_post_shock_conditions = os_solver.calculate_post_shock_conditions(M1=10, theta_s=theta_s)
+    os_M2 = os_post_shock_conditions["M2"]
+    os_P2_P1 = os_post_shock_conditions["P2_P1"]
+    os_P2 = os_P2_P1 * p_inf
+
+    from isentropic_relations_solver import IsentropicRelationsSolver
+    isen_solver = IsentropicRelationsSolver(gamma=1.2)
+    isen_relations = isen_solver.isentropic_relations(Mach=os_M2)
+    P2_P0 = isen_relations["Static Pressure Ratio (p/p0)"]
+    P0_2 = os_P2 / P2_P0
+
+    post_shock_stag_properties = {"P0": P0_2, "T0":"_", "rho0":"_"}
+
+    
+    print(p_inf)
+    analyzer.calculate_exact_pressure_coefficient(results_df, post_shock_stag_properties, p_inf, q_inf)
+    print(analyzer.cell_P_exact)
     analyzer.export_to_vtk("src/outputs/surface_analysis.vtk")
