@@ -114,8 +114,8 @@ class SurfaceMeshAnalyzer:
         # Find pressure per cell
         cell_P_exact = P0 * cell_P_P0
         self.cell_Cp_exact = (cell_P_exact-p_inf)/(q_inf)
-        self.cell_Cl_exact = self.cell_Cp_exact * np.sin(self.angles)
-        self.cell_Cd_exact = self.cell_Cp_exact * np.cos(self.angles)
+        self.cell_Cl_exact = self.cell_Cp_exact * np.sin(np.radians(90) - self.angles)
+        self.cell_Cd_exact = self.cell_Cp_exact * np.cos(np.radians(90) - self.angles)
 
     
     def calculate_newtonian_pressure_coefficients_cell(self):
