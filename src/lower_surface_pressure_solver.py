@@ -88,7 +88,7 @@ class SurfaceMeshAnalyzer:
         self.calculate_normal_vector()
         self.angles = self.calculate_angle_from_normal_vector(freestream_direction)
 
-    def calculate_exact_pressure_coefficient(self, TM_tabulation, stag_properties, p_inf, q_inf):
+    def calculate_exact_pressure_coefficients_cell(self, TM_tabulation, stag_properties, p_inf, q_inf):
         if self.angles is None:
             raise ValueError("Angles have not been computed. Run analyze_mesh() first.")
 
@@ -105,15 +105,50 @@ class SurfaceMeshAnalyzer:
 
         self.cell_mach = mach_interp(self.angles)
         cell_P_P0 = P_P0_interp(self.angles)
-        self.cell_T_T0 = T_T0_interp(self.angles)
-        self.cell_rho_rho0 = rho_rho0_interp(self.angles)
+        cell_T_T0 = T_T0_interp(self.angles)
+        cell_rho_rho0 = rho_rho0_interp(self.angles)
 
         # Look into stag_properties to get stagnation pressure (P0)
         P0 = stag_properties["P0"]
 
         # Find pressure per cell
-        self.cell_P_exact = P0 * cell_P_P0
-        self.cell_Cp_exact = (self.cell_P_exact-p_inf)/(q_inf)
+        cell_P_exact = P0 * cell_P_P0
+        self.cell_Cp_exact = (cell_P_exact-p_inf)/(q_inf)
+        self.cell_Cl_exact = self.cell_Cp_exact * np.sin(self.angles)
+        self.cell_Cd_exact = self.cell_Cp_exact * np.cos(self.angles)
+
+    
+    def calculate_newtonian_pressure_coefficients_cell(self):
+        """
+        Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
+
+        Parameters
+        ----------
+        Returns
+            None.
+        """
+        
+        self.cell_Cp_newtonian = 2 * np.sin(self.angles)**2
+        self.cell_Cd_newtonian = 2 * np.sin(self.angles)**3
+        self.cell_Cl_newtonian =  np.cos(self.angles) * 2 * np.sin(self.angles)**2
+
+    def Cp_entire_vehicle(self, Cp_input):
+        """
+        Calculate normalized pressure coefficients over the entire lower surface.
+        Area-weighted average of coefficients of pressure (eg: (Cp), lift (Cl), and drag (Cd)).
+
+        Parameters
+        ----------
+        Cp_input: Array
+            Prefered Cp distribution
+
+        Returns
+        -------
+            - Cp_vehicle: Singular Cp value across entire vehicle. 
+        """
+        Cp_vehicle = np.sum(Cp_input*self.cell_areas)/np.sum(self.cell_areas)
+
+        return Cp_vehicle
 
     def export_to_vtk(self, output_filename="outputs/output.vtk"):
         """Exports the STL surface mesh with interpolated results as a VTK file."""
@@ -131,30 +166,46 @@ class SurfaceMeshAnalyzer:
         pv_mesh = pv.PolyData(points, faces)
 
         # Assign cell data (per triangle)
+        pv_mesh.cell_data["angles"] = np.degrees(self.angles)
         pv_mesh.cell_data["Mach"] = self.cell_mach
         # pv_mesh.cell_data["P/P0"] = self.cell_P_P0
-        pv_mesh.cell_data["T/T0"] = self.cell_T_T0
-        pv_mesh.cell_data["rho/rho0"] = self.cell_rho_rho0
+        # pv_mesh.cell_data["T/T0"] = self.cell_T_T0
+        # pv_mesh.cell_data["rho/rho0"] = self.cell_rho_rho0
+        # pv_mesh.cell_data["P Exact"] = self.cell_P_exact
         pv_mesh.cell_data["Cp Exact"] = self.cell_Cp_exact
-        pv_mesh.cell_data["P Exact"] = self.cell_P_exact
-        pv_mesh.cell_data["angles"] = np.degrees(self.angles)
+        pv_mesh.cell_data["Cl Exact"] = self.cell_Cl_exact
+        pv_mesh.cell_data["Cd Exact"] = self.cell_Cd_exact
+        pv_mesh.cell_data["Cp Newtonian"] = self.cell_Cp_newtonian
+        pv_mesh.cell_data["Cl Newtonian"] = self.cell_Cl_newtonian
+        pv_mesh.cell_data["Cd Newtonian"] = self.cell_Cd_newtonian
+
+        # For visualization of cell vector normals
+        # Initialize normal vector array (set all to zero)
+        sampled_normals = np.full_like(self.normal_vectors, np.nan)
+        cell_ids_to_visualize = [1, 25, 50, 75, 100]
+        if cell_ids_to_visualize is not None:
+            for cell_id in cell_ids_to_visualize:
+                if 0 <= cell_id < len(self.normal_vectors):  # Ensure ID is within range
+                    sampled_normals[cell_id] = self.normal_vectors[cell_id]
+
+        pv_mesh.cell_data["sampled_normals"] = sampled_normals  # Add to VTK
 
         # Save as VTK
         pv_mesh.save(output_filename)
         print(f"VTK file saved: {output_filename}")
 
-    def lower_surface_solver(self):
-        """
-        Loop through the cells in the lower surface mesh and calculate the cell area, normal vector, and angle from the normal vector to the free-stream direction.
-        """
+    # def lower_surface_solver(self):
+    #     """
+    #     Loop through the cells in the lower surface mesh and calculate the cell area, normal vector, and angle from the normal vector to the free-stream direction.
+    #     """
 
-        lower_surface_mesh = import_lower_surface_mesh()
-        cell_areas = calculate_cell_area()
-        normal_vectors = calculate_normal_vector()
-        angle_from_normal_vector = calculate_angle_from_normal_vector()
+    #     lower_surface_mesh = import_lower_surface_mesh()
+    #     cell_areas = calculate_cell_area()
+    #     normal_vectors = calculate_normal_vector()
+    #     angle_from_normal_vector = calculate_angle_from_normal_vector()
 
-        for i in range(len(lower_surface_mesh.vectors)):
-            print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
+    #     for i in range(len(lower_surface_mesh.vectors)):
+    #         print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
    
     # def calculate_cp_modified_newtonian(self, M1):
     #     """
@@ -180,63 +231,23 @@ class SurfaceMeshAnalyzer:
     #         "Cp_newtonian_mod": Cp_newtonian_mod, #Use this one for surface calculations
     #         "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
     #     }
-    
-    def calculate_newtonian_values(self):
-        """
-        Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
 
-        Parameters
-        ----------
-        Returns
-        -------
-            - Cl: Newtonian flow lift coefecient per cell
-            - Cd: Newtonian flow drag coefecient per cell
-            - Cp_newtonian: Newtonian Cp per cell
-        """
-        
-        self.Cp_newtonian = 2*np.sin(self.angles)**2
-        self.Cd = 2*np.sin(self.angles)**3
-        self.Cl =  np.cos(self.angles)*2*np.sin(self.angles)**2
+    # def lift_over_drag(self):
+    #     """
+    #     Use basic newtonian theory to calculate the lift over drag value per cell or per body
 
-        return{
-            "Cd": self.Cd,
-            "Cl": self.Cl,
-            "Cp_newtonian": self.Cp_newtonian
-        }
+    #     Parameters
+    #     ----------
 
-    def lift_over_drag(self):
-        """
-        Use basic newtonian theory to calculate the lift over drag value per cell or per body
+    #     Returns
+    #     -------
+    #         - Cl_Cd: Lift over Drag of the vehicle
+    #     """
+    #     self.Cl_Cd = self.Cl/self.Cd
 
-        Parameters
-        ----------
-
-        Returns
-        -------
-            - Cl_Cd: Lift over Drag of the vehicle
-        """
-        self.Cl_Cd = self.Cl/self.Cd
-
-        return{
-            "Cl_Cd": self.Cl_Cd
-        }
-
-    def Cp_entire_vehcile(self,Cp_input):
-        """
-        apply a color to be ascociated with each triangle based on calculated Cp
-
-        Parameters
-        ----------
-        Cp_input: Array
-            Prefered Cp distribution
-
-        Returns
-        -------
-            - Cp_vehicle: Singular Cp value across entire vehicle. 
-        """
-        Cp_vehicle = np.sum(Cp_input*self.cell_areas)/np.sum(self.cell_areas)
-
-        return Cp_vehicle
+    #     return{
+    #         "Cl_Cd": self.Cl_Cd
+    #     }
         
 # Example usage:
 if __name__ == "__main__":
@@ -280,8 +291,20 @@ if __name__ == "__main__":
 
     post_shock_stag_properties = {"P0": P0_2, "T0":"_", "rho0":"_"}
 
-    
-    print(p_inf)
-    analyzer.calculate_exact_pressure_coefficient(results_df, post_shock_stag_properties, p_inf, q_inf)
-    print(analyzer.cell_P_exact)
+    analyzer.calculate_exact_pressure_coefficients_cell(results_df, post_shock_stag_properties, p_inf, q_inf)
+    analyzer.calculate_newtonian_pressure_coefficients_cell()
     analyzer.export_to_vtk("src/outputs/surface_analysis.vtk")
+
+    Cp_inputs = {
+    "Cp_exact": analyzer.cell_Cp_exact,
+    "Cl_exact": analyzer.cell_Cl_exact,
+    "Cd_exact": analyzer.cell_Cd_exact,
+    "Cp_newtonian": analyzer.cell_Cp_newtonian,
+    "Cl_newtonian": analyzer.cell_Cl_newtonian,
+    "Cd_newtonian": analyzer.cell_Cd_newtonian,
+    }
+
+    for name, Cp_input in Cp_inputs.items():
+        total_Cp = analyzer.Cp_entire_vehicle(Cp_input=Cp_input)
+        print(f"{name}: {total_Cp}")
+
