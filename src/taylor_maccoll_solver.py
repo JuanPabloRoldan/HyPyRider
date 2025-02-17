@@ -25,6 +25,7 @@ Nomenclature:
 
 import numpy as np
 import pandas as pd
+from isentropic_relations_solver import IsentropicRelationsSolver
 
 class TaylorMaccollSolver:
     def __init__(self, gamma=1.4, step_size=0.0001):
@@ -233,21 +234,47 @@ class TaylorMaccollSolver:
         pd.DataFrame
             DataFrame containing Theta (radians), V_r, and V_theta.
         '''
+        isentropic_solver = IsentropicRelationsSolver(self.gamma)
+
         theta = theta_c
         Vr = Vr0
         dVr = dVr0
+        M = self.calculate_Mach_from_components(Vr, dVr)
+
+        isentropic_properties = isentropic_solver.isentropic_relations(M)
+        p_ratio = isentropic_properties["Static Pressure Ratio (p/p0)"]
+        t_ratio = isentropic_properties["Static Temperature Ratio (T/T0)"]
+        rho_ratio = isentropic_properties["Static Density Ratio (rho/rho0)"]
 
         # Lists to store results
-        results = [[theta, Vr, dVr]]  # Log initial conditions
+        results = [[theta, M, Vr, dVr, p_ratio, t_ratio, rho_ratio]]  # Log initial conditions
 
         while abs(theta - theta_s) > 1e-3:  # Continue until reach shock angle
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
+            M = self.calculate_Mach_from_components(Vr, dVr)
+
+            isentropic_properties = isentropic_solver.isentropic_relations(M)
+            p_ratio = isentropic_properties["Static Pressure Ratio (p/p0)"]
+            t_ratio = isentropic_properties["Static Temperature Ratio (T/T0)"]
+            rho_ratio = isentropic_properties["Static Density Ratio (rho/rho0)"]
+
             theta += self.h
 
             # Save current results
-            results.append([theta, Vr, dVr])
+            results.append([theta, M, Vr, dVr, p_ratio, t_ratio, rho_ratio])
 
         # Create and return DataFrame
-        results_df = pd.DataFrame(results, columns=["Theta (radians)", "V_r", "V_theta"])
+        results_df = pd.DataFrame(results, columns=["Theta (radians)", "Mach", "V_r", "V_theta", "P/P0", "T/T0", "rho/rho0"])
         return results_df
+
+# Example usage
+if __name__ == "__main__":
+    solver = TaylorMaccollSolver()
+    theta_s = np.radians(30)  # Example shock angle
+    theta_c = np.radians( 26.5909011)
+    Mc = 3.57846955
+    V_0, Vr0, dVr0 = solver.calculate_velocity_components(Mc, theta_c, theta_c)
+    
+    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
+    print(results_df.head())
