@@ -131,8 +131,8 @@ def plot_altitude_vs_mach(gamma, dynamic_pressures):
     plt.legend()
     plt.show()
 
-# Example usage
-gamma = 1.4  # Specific heat ratio for air
-dynamic_pressures = [25331.25, 101325]  # Array of dynamic pressure values in Pascals
+# # Example usage
+# gamma = 1.4  # Specific heat ratio for air
+# dynamic_pressures = [25331.25, 101325]  # Array of dynamic pressure values in Pascals
 
-plot_altitude_vs_mach(gamma, dynamic_pressures)
+# plot_altitude_vs_mach(gamma, dynamic_pressures)
