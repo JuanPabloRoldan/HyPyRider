@@ -30,6 +30,34 @@ class StreamlineIntegrator:
         # Tabulate post-shock flow properties from shock angle to the cone angle
         self.TM_tabulation = self.conical_analyzer.tabulate_tm_shock_to_cone(theta_s)
 
+    def calculate_vector_angle(self, vector):
+        """
+        Calculates the angle between the given vector and the reference vector [1, 0, 0].
+
+        Parameters:
+            vector (list or np.array): A 3D vector [vx, vy, vz].
+
+        Returns:
+            float: Angle in degrees between the input vector and [1, 0, 0].
+        """
+        reference_vector = np.array([1, 0, 0])
+        vector = np.array(vector)
+
+        # Compute dot product and magnitudes
+        dot_product = np.dot(vector, reference_vector)
+        vector_magnitude = np.linalg.norm(vector)
+        ref_magnitude = np.linalg.norm(reference_vector)
+
+        # Avoid division by zero
+        if vector_magnitude == 0:
+            return None
+
+        # Compute the angle in radians
+        angle_rad = np.arccos(np.clip(dot_product / (vector_magnitude * ref_magnitude), -1.0, 1.0))
+
+        # Convert to degrees
+        return np.degrees(angle_rad)
+
     def trace_streamline(self, x, y, z, streamline_id):
         """
         Traces a streamline starting from the given leading-edge (LE) normalized coordinates.
@@ -45,20 +73,18 @@ class StreamlineIntegrator:
         """
         theta = self.theta_s
         streamline_points = []
-        order = 0 # tracks # of points in a streamline
+        order = 0  # Tracks the number of points in a streamline
 
         # **Store the first point explicitly (the leading edge point)**
-        streamline_points.append([x * self.ref_length, 
-                                y * self.ref_length, 
-                                z * self.ref_length, streamline_id, order])
+        first_point = [x * self.ref_length, y * self.ref_length, z * self.ref_length]
+        streamline_points.append(first_point + [streamline_id, order])
         order += 1  # Increment order before stepping forward
-        
+
         alpha = np.arctan(abs(z / y))
+        prev_point = np.array(first_point)  # Store the first point as previous point
 
         while x < 1:
-            
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-            # alpha = np.arctan(abs(z / y))
             dt = 0.02
 
             # Interpolate V_r and V_theta from tabulated data
@@ -76,12 +102,20 @@ class StreamlineIntegrator:
             y = -w * np.cos(alpha)
             z = w * np.sin(alpha)
 
-            # Store points with streamline ID and order
-            streamline_points.append([x * self.ref_length, 
-                                      y * self.ref_length, 
-                                      z * self.ref_length, streamline_id, order])
-            
+            # Store new point
+            new_point = np.array([x * self.ref_length, y * self.ref_length, z * self.ref_length])
+            streamline_points.append(list(new_point) + [streamline_id, order])
             order += 1
+
+            # Compute vector between the previous and new point
+            vector = new_point - prev_point
+            angle = self.calculate_vector_angle(vector)
+
+            # Print or store the angle for later analysis
+            print(f"Streamline {streamline_id}, Step {order}: Angle = {angle:.2f} degrees")
+
+            # Update previous point
+            prev_point = new_point
 
             if np.isclose(theta, self.theta_c, rtol=0.01):
                 break
@@ -208,9 +242,10 @@ if __name__ == "__main__":
     # Create the lower surface by tracing streamlines
     integrator.create_lower_surface()
 
-    # Export streamline data
-    dat_filename = "streamlines.dat"
-    integrator.export_streamlines_dat(dat_filename)
+    print(np.degrees(integrator.TM_tabulation['Theta (radians)']))
+    # # Export streamline data
+    # dat_filename = "streamlines.dat"
+    # integrator.export_streamlines_dat(dat_filename)
 
-    # Close the streamline segments
-    integrator.close_streamline_segments(dat_filename)
+    # # Close the streamline segments
+    # integrator.close_streamline_segments(dat_filename)
