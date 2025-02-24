@@ -88,8 +88,10 @@ class StreamlineIntegrator:
             dt = 0.02
 
             # Interpolate V_r and V_theta from tabulated data
+            print(f"Interpolating at Theta = {np.degrees(theta):.4f}")
             V_r = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
             V_theta = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
+            print(f"V_r = {V_r}, V_theta = {V_theta}")
 
             # Update theta and r
             d_theta = V_theta * dt / r
@@ -109,6 +111,7 @@ class StreamlineIntegrator:
 
             # Compute vector between the previous and new point
             vector = new_point - prev_point
+            print(f'Vector between the two points\n{vector}')
             angle = self.calculate_vector_angle(vector)
 
             # Print or store the angle for later analysis
@@ -117,8 +120,8 @@ class StreamlineIntegrator:
             # Update previous point
             prev_point = new_point
 
-            if np.isclose(theta, self.theta_c, rtol=0.01):
-                break
+            # if np.isclose(theta, self.theta_c, rtol=0.01):
+            #     break
 
         # Set last point x-coordinate to ref_length
         streamline_points[-1][0] = self.ref_length
