@@ -1,0 +1,59 @@
+import numpy as np
+
+def shock_vertex():
+    '''
+        Obtains chordinates of the shock vertex
+
+        Parameters
+        ----------
+        Leading Edge Chordinates :
+            #TODO: Inport first and last non-deminsionlized leading edge chordinates
+
+        Returns
+        -------
+        Ze
+            Z chordinate of vertex
+        Ye
+            Y chordinate of vertex
+        Xe
+            X chordinate of vertex
+    '''
+    y_v = float #First point
+    z_v = float #"
+
+    y_wt = float #Last Point
+    x_wt = float #"
+
+    
+    M = 10 #Mach number
+    U_inf = 1/np.tan(M)
+    c = y_v+z_v*np.tan(U_inf)-y_wt
+
+    #Find Z and Y chord
+    Ze = (c**2+x_wt**2-np.tan(U_inf)**2)/(2*np.tan(U_inf)*(c-np.tan(U_inf)))
+    Ye = [(1-Ze)**2*np.tan(U_inf)**2-x_wt**2]**0.5+y_wt
+
+    return{
+        "Ze": Ze,
+        "Ye": Ye,
+        "Xe": 0
+    }
+
+def translation():
+    '''
+        Finds the delta Z expected from the translation down the cone.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Downshift
+            translation down the cone of the surface
+    '''
+    x_l = float #any arbitrary x chord
+    y_l = float #any arbitrary y chord
+
+    Downshift = (-(x_l**2+y_l**2))**0.5/(np.tan(20))
+    
+    return Downshift
