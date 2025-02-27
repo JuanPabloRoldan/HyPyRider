@@ -13,6 +13,18 @@ mach_vertex_chords = mach_vertex(dim_chordinates);
 disp(mach_vertex_chords)
 
 function mach_vertex_chords = mach_vertex(chords)
+    %{
+    This function takes non dimesnilized chords and runs through eqn 2.18
+    from Bowcutt's dissertation obtaining chords of the mach cone vertex.
+
+    Parameters
+    ----------
+        chords : nondimensionlized leading edge data
+
+    Returns
+    ----------
+        mach_vertex_chords : 1x3 array of x y z chords for mach cone vertex
+    %}
     x_v = chords(1,1) ;     %Id dimensionlized chords for vertex
     y_v = chords(1,2);
     z_v = chords(1,3);
