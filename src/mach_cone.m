@@ -35,13 +35,13 @@ function mach_vertex_chords = mach_vertex(chords)
     
     mu = asind(0.1);        %asin(0.1) if needed in radians
     
-    c = y_v + x_v * tan(mu)-y_wt;                %Obtain c
+    c = y_v + x_v * tand(mu)-y_wt;                %Obtain c
     
-    x_e_num = c^2 + z_wt^2 - tan(mu)^2;          %Find Xe
-    x_e_dem = 2*tan(mu)*(c-tan(mu));
+    x_e_num = c^2 + z_wt^2 - tandmu)^2;          %Find Xe
+    x_e_dem = 2*tand(mu)*(c-tand(mu));
     x_e = x_e_num/x_e_dem;
     
-    y_e = ((1-x_e)^2 * tan(mu)^2 - z_wt^2)^0.5 + y_wt; %Find Ye
+    y_e = ((1-x_e)^2 * tand(mu)^2 - z_wt^2)^0.5 + y_wt; %Find Ye
     
     z_e = 0;
 
