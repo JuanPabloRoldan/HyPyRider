@@ -26,11 +26,11 @@ function mach_vertex_chords = mach_vertex(chords)
         mach_vertex_chords : 1x3 array of x y z chords for mach cone vertex
     %}
     x_v = chords(1,1) ;     %Id dimensionlized chords for vertex
-    y_v = chords(1,2);
+    y_v = -chords(1,2);
     z_v = chords(1,3);
     
     x_wt = chords(46,1);    %and for wingtip
-    y_wt = chords(46,2);
+    y_wt = -chords(46,2);
     z_wt = chords(46,3);
     
     mu = asind(0.1);        %asin(0.1) if needed in radians
