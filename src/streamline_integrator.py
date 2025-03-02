@@ -2,6 +2,7 @@ import os
 import random
 import numpy as np
 import pandas as pd
+from scipy.interpolate import interp1d, CubicSpline
 from conical_flow_analyzer import ConicalFlowAnalyzer
 import process_LE_points
 
@@ -71,62 +72,61 @@ class StreamlineIntegrator:
         Returns:
             None (stores streamline points in self.streamline_data)
         """
+        
         theta = self.theta_s
         streamline_points = []
-        order = 0  # Tracks the number of points in a streamline
+        order = 0
 
-        # **Store the first point explicitly (the leading edge point)**
         first_point = [x * self.ref_length, y * self.ref_length, z * self.ref_length]
         streamline_points.append(first_point + [streamline_id, order])
-        order += 1  # Increment order before stepping forward
+        order += 1
 
         alpha = np.arctan(abs(z / y))
-        prev_point = np.array(first_point)  # Store the first point as previous point
+        prev_point = np.array(first_point)
 
         while x < 1:
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
             dt = 0.02
-
-            # Interpolate V_r and V_theta from tabulated data
-            print(f"Interpolating at Theta = {np.degrees(theta):.4f}")
             V_r = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
             V_theta = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
-            print(f"V_r = {V_r}, V_theta = {V_theta}")
-
-            # Update theta and r
             d_theta = V_theta * dt / r
             theta += d_theta
             r += (V_r * dt)
             w = r * np.sin(theta)
-
-            # Update coordinates
             x = r * np.cos(theta)
             y = -w * np.cos(alpha)
             z = w * np.sin(alpha)
-
-            # Store new point
             new_point = np.array([x * self.ref_length, y * self.ref_length, z * self.ref_length])
             streamline_points.append(list(new_point) + [streamline_id, order])
             order += 1
 
-            # Compute vector between the previous and new point
             vector = new_point - prev_point
-            print(f'Vector between the two points\n{vector}')
             angle = self.calculate_vector_angle(vector)
-
-            # Print or store the angle for later analysis
             print(f"Streamline {streamline_id}, Step {order}: Angle = {angle:.2f} degrees")
-
-            # Update previous point
             prev_point = new_point
 
-            # if np.isclose(theta, self.theta_c, rtol=0.01):
-            #     break
+            if np.isclose(theta, self.theta_c, rtol=0.01):
+                break
 
-        # Set last point x-coordinate to ref_length
-        streamline_points[-1][0] = self.ref_length
+        x_vals = np.array([pt[0] for pt in streamline_points])
+        y_vals = np.array([pt[1] for pt in streamline_points])
+        z_vals = np.array([pt[2] for pt in streamline_points])
 
-        # Append streamline points to global data
+        if len(x_vals) > 3:
+            spline_y = CubicSpline(x_vals, y_vals, extrapolate=True)
+            spline_z = CubicSpline(x_vals, z_vals, extrapolate=True)
+        elif len(x_vals) > 1:
+            spline_y = interp1d(x_vals, y_vals, fill_value="extrapolate")
+            spline_z = interp1d(x_vals, z_vals, fill_value="extrapolate")
+        else:
+            spline_y = lambda x: y_vals[-1]
+            spline_z = lambda x: z_vals[-1]
+
+        last_x = self.ref_length
+        last_y = spline_y(last_x)
+        last_z = spline_z(last_x)
+        streamline_points[-1] = [last_x, last_y, last_z, streamline_id, streamline_points[-1][4]]
+
         self.streamline_data.extend(streamline_points)
 
     def create_lower_surface(self):
@@ -239,16 +239,16 @@ if __name__ == "__main__":
     integrator = StreamlineIntegrator(gamma=1.2, M1=10.0, theta_s=np.radians(20))
 
     # Extract leading-edge points from a file
-    file_path = 'src/inputs/LeadingEdgeData_LeftSide.nmb'
+    file_path = 'src/inputs/Expansion_edge_Data_RightSide.nmb'
     integrator.LE_points = process_LE_points.extract_points_from_file(file_path)
 
     # Create the lower surface by tracing streamlines
     integrator.create_lower_surface()
 
     print(np.degrees(integrator.TM_tabulation['Theta (radians)']))
-    # # Export streamline data
-    # dat_filename = "streamlines.dat"
-    # integrator.export_streamlines_dat(dat_filename)
+    # Export streamline data
+    dat_filename = "ExpansionStreamlines.dat"
+    integrator.export_streamlines_dat(dat_filename)
 
-    # # Close the streamline segments
-    # integrator.close_streamline_segments(dat_filename)
+    # Close the streamline segments
+    integrator.close_streamline_segments(dat_filename)
