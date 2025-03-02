@@ -59,7 +59,7 @@ class StreamlineIntegrator:
         # Convert to degrees
         return np.degrees(angle_rad)
 
-    def trace_streamline(self, x, y, z, streamline_id):
+    def trace_streamline(self, x, y, z, streamline_id, const_time_step=1):
         """
         Traces a streamline starting from the given leading-edge (LE) normalized coordinates.
 
@@ -72,7 +72,7 @@ class StreamlineIntegrator:
         Returns:
             None (stores streamline points in self.streamline_data)
         """
-        
+
         theta = self.theta_s
         streamline_points = []
         order = 0
@@ -86,11 +86,19 @@ class StreamlineIntegrator:
 
         while x < 1:
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-            dt = 0.02
+
             V_r = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
             V_theta = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
-            d_theta = V_theta * dt / r
+            
+            if const_time_step:
+                dt = 0.02
+                d_theta = V_theta * dt / r
+            
+            else:
+                d_theta = 0.01
+                dt = d_theta * r / V_theta
             theta += d_theta
+            
             r += (V_r * dt)
             w = r * np.sin(theta)
             x = r * np.cos(theta)
