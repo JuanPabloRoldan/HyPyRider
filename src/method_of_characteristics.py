@@ -2,7 +2,7 @@ import numpy as np
 
 class Point:
     """Class to store properties of a flow point."""
-    def __init__(self, x, y, theta, M, flow_props):
+    def __init__(self, x, r, theta, M, flow_props):
         """
         Initializes a flow point with given parameters.
         
@@ -89,26 +89,26 @@ class AxisymmetricMOC:
             x1 = wall_params["x1"]
 
             # Wall Equation (Eq. 8)
-            eq1 = y3 - ((r2 - r1) / (1 - x1)**2 * (x3 - x1)**2 + r1)
+            eq1 = r3 - ((r2 - r1) / (1 - x1)**2 * (x3 - x1)**2 + r1)
 
             # Wall Derivative Equation (Eq. 9)
             eq3 = (2 * (r2 - r1) / (1 - x1)**2) * (x3 - x1) - np.tan(theta3)
 
         else:
             # Standard characteristic equations (C-)
-            eq1 = (y3 - point1.y) - (x3 - point1.x) * np.tan(0.5 * (point1.theta - point1.mu + theta3 - mu3))
+            eq1 = (r3 - point1.r) - (x3 - point1.x) * np.tan(0.5 * (point1.theta - point1.mu + theta3 - mu3))
 
             # Compatibility equation for C-
             eq3 = (theta3 - point1.theta + nu3 - point1.nu) - (
-                (0.5 * (M3**2 + point1.M**2) - 1) ** 0.5 * 2 / np.cot(point1.theta + theta3) * (y3 - point1.y) / (y3 + point1.y)
+                (0.5 * (M3**2 + point1.M**2) - 1) ** 0.5 * 2 / np.cot(point1.theta + theta3) * (r3 - point1.r) / (r3 + point1.r)
             )
 
         # Characteristic equation for C+ (always the same)
-        eq2 = (y3 - point2.y) - (x3 - point2.x) * np.tan(0.5 * (point2.theta + point2.mu + theta3 + mu3))
+        eq2 = (r3 - point2.r) - (x3 - point2.x) * np.tan(0.5 * (point2.theta + point2.mu + theta3 + mu3))
 
         # Compatibility equation for C+ (always the same)
         eq4 = (theta3 + point2.theta - nu3 + point2.nu) - (
-            (0.5 * (M3**2 + point2.M**2) - 1) ** 0.5 * 2 / np.cot(point2.theta + theta3) * (y3 - point2.y) / (y3 + point2.y)
+            (0.5 * (M3**2 + point2.M**2) - 1) ** 0.5 * 2 / np.cot(point2.theta + theta3) * (r3 - point2.y) / (r3 + point2.r)
         )
 
         # Prandtl-Meyer Function (always the same)
@@ -144,37 +144,39 @@ class AxisymmetricMOC:
         F1 = C1 - np.tan(C2)
 
         J[0, 0] = -1 / (2 * np.cos(C2) ** 2)
-        # J[0, 1]
+        J[0, 1] = 0
         J[0, 2] = -J[0,0]
-        # J[0 , 3]
+        J[0 , 3] = 0
         J[0, 4] = 1 / (x3 - point1.x)
         J[0, 5] = -C1 * J[0, 4]
 
         # Left running C+ Characteristic Line
         # ====================================
-        # Partial derivatives of equation 2
-        J[1, 0] = -np.tan(0.5 * (point2.theta + point2.mu + theta3 + mu3))  # dF2/dx3
-        J[1, 1] = 1  # dF2/dy3
-        J[1, 2] = -0.5 / np.cos(0.5 * (point2.theta + point2.mu + theta3 + mu3)) ** 2  # dF2/dθ3
-        J[1, 4] = -0.5 / np.cos(0.5 * (point2.theta + point2.mu + theta3 + mu3)) ** 2  # dF2/dμ3
+        C1 = r3 - point2.r / (x3 - point2.x)
+        C2 = (theta3 + mu3) + (point2.theta + point2.mu)
+        F2 = C1 - np.tan(C2)
 
-        # Partial derivatives of equation 3
-        J[2, 2] = 1  # dF3/dθ3
-        J[2, 3] = self.flow_properties.d_prandtl_meyer_dM(M3)  # dF3/dM3
-        J[2, 5] = 1  # dF3/dν3
+        J[1, 0] = -1 / (2 * np.cos(C2) ** 2)
+        J[1, 1] = 0
+        J[1, 2] = J[1, 0]
+        J[1, 3] = 0
+        J[1, 4] = 1 / (x3 - point2.x)
+        J[1, 5] = -C1 * J[1, 4]
+        
+        # Right running C- Compatibility Eq.
+        # ====================================
+        C1 = (theta3 + mu3) - (point1.theta + point1.mu)
+        C2 = np.sqrt(-1 + 0.5 * (M3 * M3 + point1.M * point1.M))
+        C3 = (r3 - point1.r) / (r3 + point1.r)
+        C4 = 0.5 * (theta3 + point1.theta)
+        F3 = C1 - (2 * C3) / (C2 - (1 / np.tan(C4)))
 
-        # Partial derivatives of equation 4
-        J[3, 2] = 1  # dF4/dθ3
-        J[3, 3] = -self.flow_properties.d_prandtl_meyer_dM(M3)  # dF4/dM3
-        J[3, 5] = -1  # dF4/dν3
-
-        # Partial derivatives of equation 5 (Prandtl-Meyer function)
-        J[4, 3] = 1  # dF5/dM3
-        J[4, 5] = -1  # dF5/dν3
-
-        # Partial derivatives of equation 6 (Mach angle equation)
-        J[5, 3] = np.cos(mu3) / M3 ** 2  # dF6/dM3
-        J[5, 4] = np.cos(mu3)  # dF6/dμ3
+        J[2, 0] = 1 + C3 / (np.sin(C2) ** 2 * (C2 - (1 / np.tan(C4))) ** 2)
+        J[2, 1] = 1
+        J[2, 2] = 0
+        J[2, 3] = C3 * M3 / (C2 * (C2 - (1 / np.tan(C4))) ** 2)
+        J[2, 4] = -4 * point1.r / ((r3 + point1.r) ** 2 * (C2 - (1 / np.tan(C4))))
+        J[2, 5] = 0
 
 # ---- TESTING THE CLASS ---- #
 if __name__ == "__main__":
