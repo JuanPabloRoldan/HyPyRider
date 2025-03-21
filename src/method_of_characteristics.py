@@ -1,4 +1,5 @@
 import numpy as np
+from newton_raphson import newton_raphson_system
 
 class Point:
     """Class to store properties of a flow point."""
@@ -246,9 +247,11 @@ class AxisymmetricMOC:
         J[3] = dF_dM # dF/dM3
         return J, F
 
-
 # ---- TESTING THE CLASS ---- #
 if __name__ == "__main__":
+    import numpy as np
+    from newton_raphson import newton_raphson_system
+
     # Create an instance of FlowProperties
     flow_props = FlowProperties()
 
@@ -259,20 +262,40 @@ if __name__ == "__main__":
     point1 = Point(x=0.0, r=0.0, theta=np.radians(5), M=2.0, flow_props=flow_props)
     point2 = Point(x=1.0, r=1.0, theta=np.radians(7), M=2.5, flow_props=flow_props)
 
+    # Define guess for unknowns: [theta3, nu3, mu3, M3, r3, x3]
+    guess = np.array([np.radians(6.0), flow_props.prandtl_meyer(2.25), flow_props.mach_angle(2.25), 2.25, 0.5, 0.5])
+
+    # Efficient system wrapper to avoid redundant calls
+    class MOCSystem:
+        def __init__(self, solver, pt1, pt2):
+            self.solver = solver
+            self.pt1 = pt1
+            self.pt2 = pt2
+            self._J = None
+            self._F = None
+
+        def evaluate(self, vars):
+            self._J, self._F = self.solver.compute_jacobian(vars, self.pt1, self.pt2)
+            return self._F
+
+        def jacobian(self, vars):
+            if self._J is None or self._F is None:
+                self.evaluate(vars)
+            return self._J
+
+    system = MOCSystem(moc_solver, point1, point2)
+    solution = newton_raphson_system(system.evaluate, system.jacobian, guess)
+
     # Print point properties
     print("\n--- Point Properties ---")
     print(point1)
     print(point2)
 
-    # Define guess for unknowns: [theta3, nu3, mu3, M3, r3, x3]
-    guess = np.array([np.radians(6.0), flow_props.prandtl_meyer(2.25), flow_props.mach_angle(2.25), 2.25, 0.5, 0.5])
-
-    # Compute Jacobian and F vector
-    J, F = moc_solver.compute_jacobian(guess, point1, point2)
-
-    # Print Jacobian and Residual Vector
-    print("\n--- Jacobian Matrix J ---")
-    print(J)
-
-    print("\n--- Residual Vector F ---")
-    print(F)
+    # Print solution
+    print("\n--- Solution Found ---")
+    print("theta3 (deg):", np.degrees(solution[0]))
+    print("nu3 (deg):", np.degrees(solution[1]))
+    print("mu3 (deg):", np.degrees(solution[2]))
+    print("M3:", solution[3])
+    print("r3:", solution[4])
+    print("x3:", solution[5])
