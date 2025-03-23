@@ -58,16 +58,16 @@ def mach_vertex(chords, ref_length):
     z_wt = chords[45, 2]
 
 
-    mu = math.asin(0.1)                  #asin(0.1) in radians
-    c = y_v + x_v * math.tan(mu) - y_wt  #Obtain c
+    mu = math.degrees(math.asin(0.1)) 
+    c = y_v + x_v * math.degrees(math.tan(mu)) - y_wt  #Obtain c
 
     #Find X
-    x_e_num = c ** 2 + z_wt ** 2 - math.tan(mu) ** 2
-    x_e_dem = 2 * math.tan(mu) * (c - math.tan(mu))
+    x_e_num = c ** 2 + z_wt ** 2 - math.degrees(math.tan(mu)) ** 2
+    x_e_dem = 2 * math.degrees(math.tan(mu))  * (c - math.degrees(math.tan(mu)))
     x_e = x_e_num / x_e_dem
-
+    
     #Find y
-    y_e = -((1 - x_e) ** 2 * math.tan(mu) ** 2 - z_wt ** 2) ** 0.5 + y_wt
+    y_e = -((1 - x_e) ** 2 * math.degrees(math.tan(mu)) ** 2 - z_wt ** 2) ** 0.5 + y_wt
 
     #Find z
     z_e = 0
