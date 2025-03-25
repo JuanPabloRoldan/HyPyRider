@@ -126,13 +126,82 @@ class AxisymmetricMOC:
         J = np.zeros((6, 6))
         F = np.zeros(6)
 
-        J[0], F[0] = self._jacobian_c_minus_characteristic(vars, point1)
-        J[1], F[1] = self._jacobian_c_plus_characteristic(vars, point2)
-        J[2], F[2] = self._jacobian_c_minus_compatibility(vars, point1)
-        J[3], F[3] = self._jacobian_c_plus_compatibility(vars, point2)
-        J[4], F[4] = self._jacobian_mach_angle(vars)
-        J[5], F[5] = self._jacobian_prandtl_meyer(vars)
+        if is_wall:
+            J[1], F[1] = self._jacobian_c_plus_characteristic_wall(vars, wall_params)
+            J[2], F[2] = self._jacobian_c_minus_compatibility_wall(vars, point1)
+            J[3], F[3] = self._jacobian_c_plus_compatibility_wall(vars, wall_params)
 
+        else:
+            J[0], F[0] = self._jacobian_c_minus_characteristic(vars, point1)
+            J[1], F[1] = self._jacobian_c_plus_characteristic(vars, point2)
+            J[2], F[2] = self._jacobian_c_minus_compatibility(vars, point1)
+            J[3], F[3] = self._jacobian_c_plus_compatibility(vars, point2)
+            J[4], F[4] = self._jacobian_mach_angle(vars)
+            J[5], F[5] = self._jacobian_prandtl_meyer(vars)
+
+        return J, F
+    def _jacobian_c_plus_characteristic_wall(self, vars, wall_params):
+        "Change to be a function of the expansion cylinder"
+        r3, x3 = vars
+        x1 = wall_params["x1"]
+        x2 = wall_params["x2"]
+        r1 = wall_params["r1"]
+        r2 = wall_params["r2"]
+
+        J = np.zeros(6)
+        J[0] = 0
+        J[1] = 0
+        J[2] = 0
+        J[3] = 0
+        J[4] = 1
+        J[5] = -2 * (r2 - r1) / (x2 - x1)**2 * (x3 - x1)
+
+        F = r3 - r1 - (r2 - r1) / (x2 - x1)**2 * (x3 - x1)**2 
+        return J, F
+    
+    def _jacobian_c_minus_compatibility_wall(self, vars, point):
+        "Change F to be nu2 - nu1; Keep all else the same"
+        theta3, mu3, M3, r3, nu1, nu2 = vars
+        C1 = theta3 + mu3 - (point.theta + point.mu)
+        C2 = np.sqrt(0.5 * (M3 ** 2 + point.M ** 2) - 1)
+        C3 = (r3 - point.r) / (r3 + point.r)
+        C4 = 0.5 * (theta3 + point.theta)
+
+        J = np.zeros(6)
+        if C4 == 0:
+            F = C1
+            J[0] = 1
+            J[1] = 1
+            J[3] = 0
+            J[4] = 0
+        else:
+            cotC4 = 1 / np.tan(C4)
+            denom = C2 - cotC4
+            F = nu2 - nu1 # Change F to be nu2 - nu1
+            dC4 = 0.5
+            J[0] = 1 + 2 * C3 / (denom ** 2) * (1 / (np.sin(C4) ** 2)) * dC4
+            J[1] = 1
+            J[3] = C3 * M3 / (C2 * denom ** 2)
+            J[4] = -4 * point.r / ((r3 + point.r) ** 2 * denom)
+        return J, F
+    
+    def _jacobian_c_plus_compatibility_wall(self, vars, wall_params):
+        "Change to be a function of the expansion cylinder"
+        theta3, x3 = vars
+        x1 = wall_params["x1"]
+        x2 = wall_params["x2"]
+        r1 = wall_params["r1"]
+        r2 = wall_params["r2"]
+
+        J = np.zeros(6)
+        J[0] = 1/np.cos(theta3)^2
+        J[1] = 0
+        J[2] = 0
+        J[3] = 0
+        J[4] = 1
+        J[5] = -2 * (r2 - r1) / (x2 - x1)**2
+
+        F = np.tan(theta3)- (2*(r2 - r1) / (x2 - x1)**2 * (x3 - x1)**2)
         return J, F
 
     def _jacobian_c_minus_characteristic(self, vars, point):
@@ -257,6 +326,9 @@ if __name__ == "__main__":
 
     # Create an instance of AxisymmetricMOC using the flow properties
     moc_solver = AxisymmetricMOC(flow_props)
+
+    # Define wall parameters
+    wall_params = {"x1": 3.5010548, "x2": 9.39262, "r1": -3.5507, "r2": -2.5}
 
     # Define two known points (now passing flow_props directly)
     point1 = Point(x=0.0, r=0.0, theta=np.radians(5), M=2.0, flow_props=flow_props)
