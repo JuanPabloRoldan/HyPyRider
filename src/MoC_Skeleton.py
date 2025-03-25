@@ -1,6 +1,8 @@
-import method_of_characteristics
+from method_of_characteristics import *
 import newton_raphson
 import NR_initial_guess
+
+import numpy as np
 
 
 class MoC_Skeleton:
@@ -25,16 +27,26 @@ class MoC_Skeleton:
             #TODO Add any return values
         """
 
-        while asociated_x_value <= x_value_endofsurface: #stops at the end of the surface
-            while i <= j: 
-                #for every point j before and at the wall along a line i
-                #TODO Insert solver to obatin point 3
+        i_max = 30
 
-                if i == j:          #Check to see if you are at a wall
-                    is_wall = True  # Set a boolean to True
-                    #TODO Function to obtain the x value ascociated with the final (i,j) point
+        # initialize square matrix to hold mesh
+        moc_mesh = np.zeroes(i_max, i_max)
+        
+        # init_point = # grab known point on the leading vertex
+        # moc_mesh[0][0] = init_point
 
-                j += 1 #work down each i line untill the wall
-            
-            i += 1     #move to next i line
+        for i in range(1, i_max):
 
+            # cone_point = # passing i as some i * delta | grab known point on the Mach cone
+            # moc_mesh[i][0] = cone_point
+
+            for j in range(1, i): 
+                # for every internal point j along a line i
+
+                # moc_mesh[i][j] = solve_moc(moc_mesh[i][j-1].right, moc_mesh[i-1][j].left)
+    
+            # once broken out of j loop, necessarily at a wall (ie j == 1)
+            # moc_mesh[i][i] = solve_moc(moc_mesh[i][i-1].right, is_wall=True)
+
+            # if moc_mesh[i][i].x >= cone_length
+            #     break
