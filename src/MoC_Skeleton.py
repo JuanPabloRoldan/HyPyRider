@@ -1,6 +1,6 @@
 from method_of_characteristics import FlowProperties, Point, AxisymmetricMOC
-import newton_raphson
-import NR_initial_guess
+from newton_raphson import newton_raphson_system
+from NR_initial_guess import get_init_NR_guess
 
 import numpy as np
 
@@ -13,8 +13,8 @@ class MoC_Skeleton:
         """
         self.flow_props = FlowProperties()
         self.moc_solver = AxisymmetricMOC(self.flow_props)
-        self.newton_raphson = newton_raphson()
-        self.NR_initial_guess = NR_initial_guess()
+        # self.newton_raphson = newton_raphson()
+        # self.NR_initial_guess = NR_initial_guess()
 
         self.Mach = Mach
 
@@ -39,10 +39,10 @@ class MoC_Skeleton:
             for j in range(1, i):
                 P1 = moc_mesh[i][j - 1]
                 P2 = moc_mesh[i - 1][j]
-                guess = self.NR_initial_guess.get_guess(P1, P2)
+                guess = get_init_NR_guess(P1, P2)
 
                 # Use Newton-Raphson solver
-                solution = newton_raphson.newton_raphson_system(
+                solution = newton_raphson_system(
                 lambda v: self.moc_solver.evaluate(v, P1, P2),
                 lambda v: self.moc_solver.jacobian(v, P1, P2),
                 guess
@@ -59,9 +59,9 @@ class MoC_Skeleton:
             # Wall point
             P1 = moc_mesh[i][i - 1]
             P2 = moc_mesh[i - 1][i - 1]
-            guess = self.NR_initial_guess.get_guess(P1, P2, is_wall=True)
+            guess = get_init_NR_guess(P1, P2, is_wall=True)
 
-            solution = newton_raphson.newton_raphson_system(
+            solution = newton_raphson_system(
                 lambda v: self.moc_solver.evaluate(v, P1, P2, is_wall=True),
                 lambda v: self.moc_solver.jacobian(v, P1, P2, is_wall=True),
                 guess
@@ -75,15 +75,24 @@ class MoC_Skeleton:
 
             moc_mesh[i][i] = new_point
 
+            if moc_mesh[i][i].x >= 9:
+                break
+
         return moc_mesh
 
 if __name__ == "__main__":
-    Mach_number = 10.0  # example input
-
-    leading_vertex = [3.5010548, 3.5507]
+    Mach_number = 10.0  # Example freestream Mach number
+    leading_vertex = [3.5010548, 3.5507]  # Initial point (x0, r0)
 
     moc_solver = MoC_Skeleton(Mach=Mach_number)
     mesh = moc_solver.MoC_Mesher(leading_vertex)
 
-    # Basic print to confirm structure
-    print("MoC mesh initialized. Example corner entry:", mesh[0][0])
+    print("MoC mesh successfully generated!\n")
+
+    # Print a sample row of points to verify:
+    row_to_print = 5
+    print(f"--- Mesh Row {row_to_print} ---")
+    for j, pt in enumerate(mesh[row_to_print]):
+        if pt is not None:
+            print(f"Point[{row_to_print}][{j}]: x={pt.x:.3f}, r={pt.r:.3f}, "
+                  f"θ={np.degrees(pt.theta):.2f}°, M={pt.M:.3f}")
