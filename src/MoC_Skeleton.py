@@ -41,7 +41,7 @@ class MoC_Skeleton:
                 P2 = moc_mesh[i - 1][j]
                 guess = self.NR_initial_guess.get_guess(P1, P2)
 
-                # Use Newton-Raphson solver here (example only):
+                # Use Newton-Raphson solver
                 solution = newton_raphson.newton_raphson_system(
                 lambda v: self.moc_solver.evaluate(v, P1, P2),
                 lambda v: self.moc_solver.jacobian(v, P1, P2),
@@ -59,7 +59,21 @@ class MoC_Skeleton:
             # Wall point
             P1 = moc_mesh[i][i - 1]
             P2 = moc_mesh[i - 1][i - 1]
-            moc_mesh[i][i] = self.moc_solver.compute_wall_point(P1, P2)
+            guess = self.NR_initial_guess.get_guess(P1, P2, is_wall=True)
+
+            solution = newton_raphson.newton_raphson_system(
+                lambda v: self.moc_solver.evaluate(v, P1, P2, is_wall=True),
+                lambda v: self.moc_solver.jacobian(v, P1, P2, is_wall=True),
+                guess
+                )
+
+            new_point = Point(
+                x=solution[5], r=solution[4],
+                theta=solution[0], M=solution[3],
+                flow_props=self.flow_props
+                )
+
+            moc_mesh[i][i] = new_point
 
         return moc_mesh
 
