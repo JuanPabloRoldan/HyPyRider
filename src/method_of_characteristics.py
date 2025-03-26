@@ -126,18 +126,19 @@ class AxisymmetricMOC:
         J = np.zeros((6, 6))
         F = np.zeros(6)
 
+        J[0], F[0] = self._jacobian_c_minus_characteristic(vars, point1)
+        J[4], F[4] = self._jacobian_mach_angle(vars)
+        J[5], F[5] = self._jacobian_prandtl_meyer(vars)
+
         if is_wall:
             J[1], F[1] = self._jacobian_c_plus_characteristic_wall(vars, wall_params)
             J[2], F[2] = self._jacobian_c_minus_compatibility_wall(vars, point1)
             J[3], F[3] = self._jacobian_c_plus_compatibility_wall(vars, wall_params)
 
         else:
-            J[0], F[0] = self._jacobian_c_minus_characteristic(vars, point1)
             J[1], F[1] = self._jacobian_c_plus_characteristic(vars, point2)
             J[2], F[2] = self._jacobian_c_minus_compatibility(vars, point1)
             J[3], F[3] = self._jacobian_c_plus_compatibility(vars, point2)
-            J[4], F[4] = self._jacobian_mach_angle(vars)
-            J[5], F[5] = self._jacobian_prandtl_meyer(vars)
 
         return J, F
     def _jacobian_c_plus_characteristic_wall(self, vars, wall_params):
