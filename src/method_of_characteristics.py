@@ -120,6 +120,21 @@ class AxisymmetricMOC:
 
         return np.array([eq1, eq2, eq3, eq4, eq5, eq6])
 
+    def evaluate(self, vars, point1, point2, is_wall=False, wall_params=None):
+        """
+        Wrapper for evaluating system residuals.
+        """
+        _, F = self.compute_jacobian(vars, point1, point2, is_wall, wall_params)
+        return F
+
+    def jacobian(self, vars, point1, point2, is_wall=False, wall_params=None):
+        """
+        Wrapper for evaluating the Jacobian matrix.
+        """
+        J, _ = self.compute_jacobian(vars, point1, point2, is_wall, wall_params)
+        return J
+
+    
     def compute_jacobian(self, vars, point1, point2, is_wall=False, wall_params=None):
         theta3, nu3, mu3, M3, r3, x3 = vars
 
@@ -338,26 +353,11 @@ if __name__ == "__main__":
     # Define guess for unknowns: [theta3, nu3, mu3, M3, r3, x3]
     guess = np.array([np.radians(6.0), flow_props.prandtl_meyer(2.25), flow_props.mach_angle(2.25), 2.25, 0.5, 0.5])
 
-    # Efficient system wrapper to avoid redundant calls
-    class MOCSystem:
-        def __init__(self, solver, pt1, pt2):
-            self.solver = solver
-            self.pt1 = pt1
-            self.pt2 = pt2
-            self._J = None
-            self._F = None
-
-        def evaluate(self, vars):
-            self._J, self._F = self.solver.compute_jacobian(vars, self.pt1, self.pt2)
-            return self._F
-
-        def jacobian(self, vars):
-            if self._J is None or self._F is None:
-                self.evaluate(vars)
-            return self._J
-
-    system = MOCSystem(moc_solver, point1, point2)
-    solution = newton_raphson_system(system.evaluate, system.jacobian, guess)
+    solution = newton_raphson_system(
+    lambda v: moc_solver.evaluate(v, point1, point2),
+    lambda v: moc_solver.jacobian(v, point1, point2),
+    guess
+    )
 
     # Print point properties
     print("\n--- Point Properties ---")
