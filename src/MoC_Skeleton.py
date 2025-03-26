@@ -19,22 +19,11 @@ class MoC_Skeleton:
         self.Mach = Mach
 
     def MoC_Mesher(self, leading_vertex):
-        """
-        Skeletal outline of the method of characteristics process. Insert functions and methods as needed 
-        
-        Parameters:
-            #TODO Add any parameters
-
-        Returns:
-            #TODO Add any return values
-        """
-
         i_max = 30
         delta_s = 0.1
 
-        # initialize square matrix to hold mesh
-        moc_mesh = np.zeros(i_max, i_max)
-        
+        moc_mesh = np.empty((i_max, i_max), dtype=object)
+
         x0, r0 = leading_vertex
         init_point = Point(x0, r0, 0, self.Mach, self.flow_props)
         moc_mesh[0][0] = init_point
@@ -42,22 +31,37 @@ class MoC_Skeleton:
         mu = init_point.mu
 
         for i in range(1, i_max):
-            # passing i as some i * delta | grab known point on the Mach cone
             x_i = x0 + i * delta_s * np.cos(mu)
             r_i = r0 + i * delta_s * np.sin(mu)
 
-            moc_mesh[i][0] = cone_point = Point(x_i, r_i, 0.0, self.M, self.flow_props)
+            moc_mesh[i][0] = Point(x_i, r_i, 0.0, self.Mach, self.flow_props)
 
-            for j in range(1, i): 
-                # for every internal point j along a line i
+            for j in range(1, i):
+                P1 = moc_mesh[i][j - 1]
+                P2 = moc_mesh[i - 1][j]
+                guess = self.NR_initial_guess.get_guess(P1, P2)
 
-                J, F = moc_solver.compute_jacobian(moc_mesh[i][j-1], moc_mesh[i-1][j])
-                
-            # once broken out of j loop, necessarily at a wall (ie j == 1)
-            # moc_mesh[i][i] = solve_moc(moc_mesh[i][i-1], is_wall=True)
+                # Use Newton-Raphson solver here (example only):
+                solution = newton_raphson.newton_raphson_system(
+                lambda v: self.moc_solver.evaluate(v, P1, P2),
+                lambda v: self.moc_solver.jacobian(v, P1, P2),
+                guess
+                )
 
-            # if moc_mesh[i][i].x >= cone_length
-            #     break
+                new_point = Point(
+                    x=solution[5], r=solution[4],
+                    theta=solution[0], M=solution[3],
+                    flow_props=self.flow_props
+                )
+
+                moc_mesh[i][j] = new_point
+
+            # Wall point
+            P1 = moc_mesh[i][i - 1]
+            P2 = moc_mesh[i - 1][i - 1]
+            moc_mesh[i][i] = self.moc_solver.compute_wall_point(P1, P2)
+
+        return moc_mesh
 
 if __name__ == "__main__":
     Mach_number = 10.0  # example input
