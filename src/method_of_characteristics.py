@@ -232,53 +232,51 @@ class AxisymmetricMOC:
 
     def _jacobian_c_minus_characteristic(self, vars, point):
         theta3, _, mu3, _, r3, x3 = vars
-        dx = x3 - point.x
-        dtheta = theta3 - mu3 + point.theta - point.mu
-        
-        cos_half_dtheta = np.cos(0.5 * dtheta)
-        if abs(cos_half_dtheta) < 1e-6:
-            return J, np.full(6, 1e6)  # force divergence to skip bad step
-
-        tan_term = np.tan(0.5 * dtheta)
+        C1 = x3 - point.x
+        C2 = 0.5 * (point.theta - point.mu + theta3 - mu3)
+        C3 = np.tan(C2)
+        C4 = np.cos(C2)
 
         J = np.zeros(6)
-        J[0] = -0.5 / (np.cos(0.5 * dtheta) ** 2)  # dF/dtheta3
+        J[0] = -0.5 * C1 / (C4**2)  # ∂f₁/∂θ₃
         J[1] = 0
-        J[2] = 0.5 / (np.cos(0.5 * dtheta) ** 2)   # dF/dmu3
+        J[2] = 0.5 * C1 / (C4**2)   # ∂f₁/∂μ₃
         J[3] = 0
-        J[4] = 1
-        J[5] = -tan_term
+        J[4] = 1                   # ∂f₁/∂r₃
+        J[5] = -C3                 # ∂f₁/∂x₃
 
-        F = r3 - point.r - dx * tan_term
+        F = r3 - point.r - C1 * C3
         return J, F
 
     def _jacobian_c_plus_characteristic(self, vars, point):
         theta3, _, mu3, _, r3, x3 = vars
-        dx = x3 - point.x
-        dtheta = theta3 + mu3 + point.theta + point.mu
-        tan_term = np.tan(0.5 * dtheta)
+        C1 = x3 - point.x
+        C2 = 0.5 * (point.theta + point.mu + theta3 + mu3)
+        C3 = np.tan(C2)
+        C4 = np.cos(C2)
 
         J = np.zeros(6)
-        J[0] = 0.5 / (np.cos(0.5 * dtheta) ** 2)   # dF/dtheta3
+        J[0] = 0.5 * C1 / (C4**2)  # ∂f₂/∂θ₃
         J[1] = 0
-        J[2] = 0.5 / (np.cos(0.5 * dtheta) ** 2)   # dF/dmu3
+        J[2] = 0.5 * C1 / (C4**2)  # ∂f₂/∂μ₃
         J[3] = 0
-        J[4] = 1
-        J[5] = -tan_term
+        J[4] = 1                  # ∂f₂/∂r₃
+        J[5] = -C3                # ∂f₂/∂x₃
 
-        F = r3 - point.r - dx * tan_term
+        F = r3 - point.r - C1 * C3
         return J, F
 
     def _jacobian_c_minus_compatibility(self, vars, point):
         theta3, _, mu3, M3, r3, _ = vars
         C1 = theta3 + mu3 - (point.theta + point.mu)
-        C2 = np.sqrt(0.5 * (M3 ** 2 + point.M ** 2) - 1)
+        C2 = np.sqrt(0.5 * (M3**2 + point.M**2) - 1)
         C3 = (r3 - point.r) / (r3 + point.r)
         C4 = 0.5 * (theta3 + point.theta)
+        C5 = 1 / np.tan(C4)
+        C6 = C2 - C5
+        C7 = 1 / (2 * np.sin(C4)**2)
 
         J = np.zeros(6)
-
-        # C4 --> 0, 1/tanC4 --> explodes, and 1/sin2C4 --> near singular J
         if abs(C4) < 1e-6:
             F = C1
             J[0] = 1
@@ -286,14 +284,12 @@ class AxisymmetricMOC:
             J[3] = 0
             J[4] = 0
         else:
-            cotC4 = 1 / np.tan(C4)
-            denom = C2 - cotC4
-            F = C1 - 2 * C3 / denom
+            F = C1 - 2 * C3 / C6
             dC4 = 0.5
-            J[0] = 1 + 2 * C3 / (denom ** 2) * (1 / (np.sin(C4) ** 2)) * dC4
+            J[0] = 1 + 2 * C3 * C7 * dC4 / (C6**2)
             J[1] = 1
-            J[3] = C3 * M3 / (C2 * denom ** 2)
-            J[4] = -4 * point.r / ((r3 + point.r) ** 2 * denom)
+            J[3] = C3 * M3 / (C2 * C6**2)
+            J[4] = -4 * point.r / ((r3 + point.r)**2 * C6)
         return J, F
 
     def _jacobian_c_plus_compatibility(self, vars, point):
@@ -317,7 +313,7 @@ class AxisymmetricMOC:
             denom = C2 + cotC4
             F = C1 - 2 * C3 / denom
             dC4 = 0.5
-            J[0] = 1 - 2 * C3 / (denom ** 2) * (1 / (np.sin(C4) ** 2)) * dC4
+            J[0] = 1 - 2 * C3 / (denom ** 2) * (1 / (2*np.sin(C4) ** 2)) * dC4
             J[1] = -1
             J[3] = C3 * M3 / (C2 * denom ** 2)
             J[4] = -4 * point.r / ((r3 + point.r) ** 2 * denom)
