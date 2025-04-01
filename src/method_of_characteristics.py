@@ -316,7 +316,7 @@ class AxisymmetricMOC:
             J[4] = -(4 * point.r)/(((r3 + point.r)**2) * (C2 + np.cot(C4)))
             # J[5] = 0
 
-            F = C1 - ((2 * C3)/(C2 + np.cot(C4)))
+            F = C1 + ((2 * C3)/(C2 + np.cot(C4)))
         return J, F
 
     def _jacobian_mach_angle(self, vars):
