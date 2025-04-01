@@ -232,7 +232,7 @@ class AxisymmetricMOC:
 
     def _jacobian_c_minus_characteristic(self, vars, point):
         theta3, mu3, r3, x3 = vars
-        C1 = (r2-point.r)/(x3 - point.x)
+        C1 = (r3-point.r)/(x3 - point.x)
         C2 = 0.5 * (theta3 - mu3 + point.theta - point.mu)
 
         J = np.zeros(6)
@@ -344,7 +344,7 @@ class AxisymmetricMOC:
             dF_dM = 1e6
 
         else:
-            dF_dM = (M3 / sqrtC2) * ((1 / (1 + C2)) - (1 / (1 + (C2 / C1))))
+            dF_dM = (M3 / np.sqrt(C2)) * ((1 / (1 + C2)) - (1 / (1 + (C2 / C1))))
 
         # J[0] = 0
         J[1] = 1     # dF/dnu3
