@@ -231,7 +231,7 @@ class AxisymmetricMOC:
         return J, F
 
     def _jacobian_c_minus_characteristic(self, vars, point):
-        theta3, mu3, r3, x3 = vars
+        theta3, nu3, mu3, M3, r3, x3 = vars
         C1 = (r3-point.r)/(x3 - point.x)
         C2 = 0.5 * (theta3 - mu3 + point.theta - point.mu)
 
@@ -247,7 +247,7 @@ class AxisymmetricMOC:
         return J, F
 
     def _jacobian_c_plus_characteristic(self, vars, point):
-        theta3, mu3, r3, x3 = vars
+        theta3, nu3, mu3, M3, r3, x3 = vars
         C1 = (r3 - point.r) / (x3 - point.x)
         C2 = 0.5 * (point.theta + point.mu + theta3 + mu3)
 
@@ -263,11 +263,12 @@ class AxisymmetricMOC:
         return J, F
 
     def _jacobian_c_minus_compatibility(self, vars, point):
-        theta3, nu3, M3, r3 = vars
+        theta3, nu3, mu3, M3, r3, x3 = vars
         C1 = (theta3 + nu3) - (point.theta + point.nu)
         C2 = np.sqrt(0.5 * (M3**2 + point.M**2) - 1)
         C3 = (r3 - point.r) / (r3 + point.r)
         C4 = 0.5 * (theta3 + point.theta)
+        cotC4 = 1 / np.tan(C4)
 
         J = np.zeros(6)
         if abs(C4) < 1e-6:
@@ -280,22 +281,23 @@ class AxisymmetricMOC:
             
             F = C1
         else:
-            J[0] = 1 + (C3 / ((np.sin(C4)**2) * ((C2 - np.cot(C4))**2)))
+            J[0] = 1 + (C3 / ((np.sin(C4)**2) * ((C2 - cotC4)**2)))
             J[1] = 1
             # J[2] = 0
-            J[3] = (C3 * M3)/(C2 * ((C2 - np.cot(C4))**2))
-            J[4] = (-4 * point.r) / ((r3 + point.r)**2 * (C2 - np.cot(C4)))
+            J[3] = (C3 * M3)/(C2 * ((C2 - cotC4)**2))
+            J[4] = (-4 * point.r) / ((r3 + point.r)**2 * (C2 - cotC4))
             # J[5] = 0
 
-            F = C1 + ((2 * C3) / (C2 - np.cot(C4)))
+            F = C1 + ((2 * C3) / (C2 - cotC4))
         return J, F
 
     def _jacobian_c_plus_compatibility(self, vars, point):
-        theta3, nu3, M3, r3 = vars
+        theta3, nu3, mu3, M3, r3, x3 = vars
         C1 = (theta3 - nu3) - (point.theta - point.nu)
         C2 = np.sqrt(0.5 * (M3**2 + point.M**2) - 1)
         C3 = (r3 - point.r) / (r3 + point.r)
         C4 = 0.5 * (theta3 + point.theta)
+        cotC4 = 1 / np.tan(C4)
 
         # C4 --> 0, 1/tanC4 --> explodes, and 1/sin2C4 --> near singular J
         J = np.zeros(6)
@@ -309,18 +311,18 @@ class AxisymmetricMOC:
 
             F = C1
         else:
-            J[0] = 1 - ((C3)/((np.sin(C4)**2) * ((C2 + np.cot(C4))**2)))
+            J[0] = 1 - ((C3)/((np.sin(C4)**2) * ((C2 + cotC4)**2)))
             J[1] = -1
             # J[2] = 0
-            J[3] = (C3 * M3)/(C2 * ((C2 + np.cot(C4))**2))
-            J[4] = -(4 * point.r)/(((r3 + point.r)**2) * (C2 + np.cot(C4)))
+            J[3] = (C3 * M3)/(C2 * ((C2 + cotC4)**2))
+            J[4] = -(4 * point.r)/(((r3 + point.r)**2) * (C2 + cotC4))
             # J[5] = 0
 
-            F = C1 + ((2 * C3)/(C2 + np.cot(C4)))
+            F = C1 + ((2 * C3)/(C2 + cotC4))
         return J, F
 
     def _jacobian_mach_angle(self, vars):
-        mu3, M3 = vars
+        theta3, nu3, mu3, M3, r3, x3 = vars
 
         J = np.zeros(6)
         # J[0] = 0
@@ -334,7 +336,7 @@ class AxisymmetricMOC:
         return J, F
 
     def _jacobian_prandtl_meyer(self, vars):
-        nu3, M3 = vars
+        theta3, nu3, mu3, M3, r3, x3 = vars
         gamma = self.flow_properties.gamma
         C1 = (gamma + 1) / (gamma - 1)
         C2 = (M3 ** 2) - 1
@@ -389,10 +391,14 @@ if __name__ == "__main__":
     print(point2)
 
     # Print solution
-    print("\n--- Solution Found ---")
-    print("theta3 (deg):", np.degrees(solution[0]))
-    print("nu3 (deg):", np.degrees(solution[1]))
-    print("mu3 (deg):", np.degrees(solution[2]))
-    print("M3:", solution[3])
-    print("r3:", solution[4])
-    print("x3:", solution[5])
+    if solution is None:
+        print("No solution found.")
+    else:
+        print("\n--- Solution Found ---")
+        print(solution)
+        print("theta3 (deg):", np.degrees(solution[0]))
+        print("nu3 (deg):", np.degrees(solution[1]))
+        print("mu3 (deg):", np.degrees(solution[2]))
+        print("M3:", solution[3])
+        print("r3:", solution[4])
+        print("x3:", solution[5])
