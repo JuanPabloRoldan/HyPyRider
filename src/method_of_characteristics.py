@@ -186,10 +186,10 @@ class AxisymmetricMOC:
         r2 = wall_params["r2"]
 
         J = np.zeros(6)
-        J[0] = 0
-        J[1] = 0
-        J[2] = 0
-        J[3] = 0
+        # J[0] = 0
+        # J[1] = 0
+        # J[2] = 0
+        # J[3] = 0
         J[4] = 1
         J[5] = -2 * (r2 - r1) / (x2 - x1)**2 * (x3 - x1)
 
@@ -203,10 +203,10 @@ class AxisymmetricMOC:
         J = np.zeros(6)
         J[0] = -1
         J[1] = 1
-        J[2] = 0
-        J[3] = 0
-        J[4] = 0
-        J[5] = 0
+        # J[2] = 0
+        # J[3] = 0
+        # J[4] = 0
+        # J[5] = 0
 
         F = nu3 - point.nu - theta3
         return J, F
@@ -221,134 +221,139 @@ class AxisymmetricMOC:
 
         J = np.zeros(6)
         J[0] = 1/np.cos(theta3)**2
-        J[1] = 0
-        J[2] = 0
-        J[3] = 0
-        J[4] = 0
+        # J[1] = 0
+        # J[2] = 0
+        # J[3] = 0
+        # J[4] = 0
         J[5] = -2 * (r2 - r1) / (x2 - x1)**2
 
         F = np.tan(theta3)- (2*(r2 - r1) / (x2 - x1)**2 * (x3 - x1)**2)
         return J, F
 
     def _jacobian_c_minus_characteristic(self, vars, point):
-        theta3, _, mu3, _, r3, x3 = vars
-        C1 = x3 - point.x
-        C2 = 0.5 * (point.theta - point.mu + theta3 - mu3)
-        C3 = np.tan(C2)
-        C4 = np.cos(C2)
+        theta3, mu3, r3, x3 = vars
+        C1 = (r2-point.r)/(x3 - point.x)
+        C2 = 0.5 * (theta3 - mu3 + point.theta - point.mu)
 
         J = np.zeros(6)
-        J[0] = -0.5 * C1 / (C4**2)  # ∂f₁/∂θ₃
-        J[1] = 0
-        J[2] = 0.5 * C1 / (C4**2)   # ∂f₁/∂μ₃
-        J[3] = 0
-        J[4] = 1                   # ∂f₁/∂r₃
-        J[5] = -C3                 # ∂f₁/∂x₃
+        J[0] = -0.5 * (1 / np.cos(C2)**2) # ∂f₁/∂θ₃
+        # J[1] = 0
+        J[2] = 0.5 * (1 / np.cos(C2)**2) # ∂f₁/∂μ₃
+        # J[3] = 0
+        J[4] = 1 / (x3 - point.x) # ∂f₂/∂r₃
+        J[5] = -C1 * (1 / (x3 - point.x)) # ∂f₂/∂x₃
 
-        F = r3 - point.r - C1 * C3
+        F = C1 - np.tan(C2)
         return J, F
 
     def _jacobian_c_plus_characteristic(self, vars, point):
-        theta3, _, mu3, _, r3, x3 = vars
-        C1 = x3 - point.x
+        theta3, mu3, r3, x3 = vars
+        C1 = (r3 - point.r) / (x3 - point.x)
         C2 = 0.5 * (point.theta + point.mu + theta3 + mu3)
-        C3 = np.tan(C2)
-        C4 = np.cos(C2)
 
         J = np.zeros(6)
-        J[0] = 0.5 * C1 / (C4**2)  # ∂f₂/∂θ₃
-        J[1] = 0
-        J[2] = 0.5 * C1 / (C4**2)  # ∂f₂/∂μ₃
-        J[3] = 0
-        J[4] = 1                  # ∂f₂/∂r₃
-        J[5] = -C3                # ∂f₂/∂x₃
+        J[0] = -0.5 * (1 / np.cos(C2)**2) # ∂f₂/∂θ₃
+        # J[1] = 0
+        J[2] = -0.5 * (1 / np.cos(C2)**2) # ∂f₂/∂μ₃
+        # J[3] = 0
+        J[4] = 1 / (x3 - point.x) # ∂f₂/∂r₃
+        J[5] = -C1 * (1 / (x3 - point.x)) # ∂f₂/∂x₃
 
-        F = r3 - point.r - C1 * C3
+        F = C1 - np.tan(C2)
         return J, F
 
     def _jacobian_c_minus_compatibility(self, vars, point):
-        theta3, _, mu3, M3, r3, _ = vars
-        C1 = theta3 + mu3 - (point.theta + point.mu)
+        theta3, nu3, M3, r3 = vars
+        C1 = (theta3 + nu3) - (point.theta + point.nu)
         C2 = np.sqrt(0.5 * (M3**2 + point.M**2) - 1)
         C3 = (r3 - point.r) / (r3 + point.r)
         C4 = 0.5 * (theta3 + point.theta)
-        C5 = 1 / np.tan(C4)
-        C6 = C2 - C5
-        C7 = 1 / (2 * np.sin(C4)**2)
 
         J = np.zeros(6)
         if abs(C4) < 1e-6:
+            J[0] = 1 + C3
+            J[1] = 1
+            # J[2] = 0
+            # J[3] = 0
+            # J[4] = 0
+            # J[5] = 0
+            
             F = C1
-            J[0] = 1
-            J[1] = 1
-            J[3] = 0
-            J[4] = 0
         else:
-            F = C1 - 2 * C3 / C6
-            dC4 = 0.5
-            J[0] = 1 + 2 * C3 * C7 * dC4 / (C6**2)
+            J[0] = 1 + (C3 / ((np.sin(C4)**2) * ((C2 - np.cot(C4))**2)))
             J[1] = 1
-            J[3] = C3 * M3 / (C2 * C6**2)
-            J[4] = -4 * point.r / ((r3 + point.r)**2 * C6)
+            # J[2] = 0
+            J[3] = (C3 * M3)/(C2 * ((C2 - np.cot(C4))**2))
+            J[4] = (-4 * point.r) / ((r3 + point.r)**2 * (C2 - np.cot(C4)))
+            # J[5] = 0
+
+            F = C1 - ((2 * C3) / (C2 - np.cot(C4)))
         return J, F
 
     def _jacobian_c_plus_compatibility(self, vars, point):
-        theta3, nu3, _, M3, r3, _ = vars
-        C1 = theta3 - nu3 - (point.theta - point.nu)
-        C2 = np.sqrt(0.5 * (M3 ** 2 + point.M ** 2) - 1)
+        theta3, nu3, M3, r3 = vars
+        C1 = (theta3 - nu3) - (point.theta - point.nu)
+        C2 = np.sqrt(0.5 * (M3**2 + point.M**2) - 1)
         C3 = (r3 - point.r) / (r3 + point.r)
         C4 = 0.5 * (theta3 + point.theta)
 
-        J = np.zeros(6)
-
         # C4 --> 0, 1/tanC4 --> explodes, and 1/sin2C4 --> near singular J
+        J = np.zeros(6)
         if abs(C4) < 1e-6:
+            J[0] = 1 - C3 
+            J[1] = -1
+            # J[2] = 0
+            # J[3] = 0
+            # J[4] = 0
+            # J[5] = 0
+
             F = C1
-            J[0] = 1
-            J[1] = -1
-            J[3] = 0
-            J[4] = 0
         else:
-            cotC4 = 1 / np.tan(C4)
-            denom = C2 + cotC4
-            F = C1 - 2 * C3 / denom
-            dC4 = 0.5
-            J[0] = 1 - 2 * C3 / (denom ** 2) * (1 / (2*np.sin(C4) ** 2)) * dC4
+            J[0] = 1 - ((C3)/((np.sin(C4)**2) * ((C2 + np.cot(C4))**2)))
             J[1] = -1
-            J[3] = C3 * M3 / (C2 * denom ** 2)
-            J[4] = -4 * point.r / ((r3 + point.r) ** 2 * denom)
+            # J[2] = 0
+            J[3] = (C3 * M3)/(C2 * ((C2 + np.cot(C4))**2))
+            J[4] = -(4 * point.r)/(((r3 + point.r)**2) * (C2 + np.cot(C4)))
+            # J[5] = 0
+
+            F = C1 - ((2 * C3)/(C2 + np.cot(C4)))
         return J, F
 
     def _jacobian_mach_angle(self, vars):
-        _, _, mu3, M3, _, _ = vars
+        mu3, M3 = vars
 
         J = np.zeros(6)
-        F = np.sin(mu3) - 1 / M3
-
+        # J[0] = 0
+        # J[1] = 0
         J[2] = np.cos(mu3)  # dF/dmu3
         J[3] = 1 / (M3 ** 2)  # dF/dM3
+        # J[4] = 0
+        # J[5] = 0
+        
+        F = np.sin(mu3) - 1 / M3
         return J, F
 
     def _jacobian_prandtl_meyer(self, vars):
-        _, nu3, _, M3, _, _ = vars
-
-        J = np.zeros(6)
+        nu3, M3 = vars
         gamma = self.flow_properties.gamma
         C1 = (gamma + 1) / (gamma - 1)
-        C2 = M3 ** 2 - 1
-        sqrtC2 = np.sqrt(C2)
-        sqrtC2_C1 = np.sqrt(C2 / C1)
+        C2 = (M3 ** 2) - 1
 
-        F = nu3 - np.sqrt(C1) * np.arctan(sqrtC2_C1) + np.arctan(sqrtC2)
-
+        J = np.zeros(6)
         if M3 <= 1.01: # if M3 is very close to 1, sqrtC2 --> 0, derivative explodes
             dF_dM = 1e6
 
         else:
-            dF_dM = (M3 / sqrtC2) * (1 / (1 + C2) - 1 / (1 + (C2 / C1)))
+            dF_dM = (M3 / sqrtC2) * ((1 / (1 + C2)) - (1 / (1 + (C2 / C1))))
 
+        # J[0] = 0
         J[1] = 1     # dF/dnu3
+        # J[2] = 0
         J[3] = dF_dM # dF/dM3
+        # J[4] = 0
+        # J[5] = 0
+
+        F = nu3 - (np.sqrt(C1) * np.arctan(np.sqrt(C2/C1))) + (np.arctan(np.sqrt(C2)))
         return J, F
 
 # ---- TESTING THE CLASS ---- #
