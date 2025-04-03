@@ -1,16 +1,45 @@
 from method_of_characteristics import FlowProperties, Point, AxisymmetricMOC
 from newton_raphson import newton_raphson_system
 from NR_initial_guess import get_init_NR_guess
+from moc_solver_pc import PredictorCorrectorExpansion
 
 import numpy as np
 
 class MoC_Skeleton:
-    def __init__(self, Mach, wall_params):
+    def __init__(self, Mach, wall_params, method="NR"):
         self.flow_props = FlowProperties()
-        self.moc_solver = AxisymmetricMOC(wall_params, self.flow_props)
         self.Mach = Mach
+        self.wall_params = wall_params
+        self.method = method.upper()
+
+        if self.method == "NR":
+            self.moc_solver = AxisymmetricMOC(wall_params, self.flow_props)
 
     def MoC_Mesher(self, leading_vertex, log_file="outputs/nr_debug_log.txt"):
+        if self.method == "PC":
+            print("Using Predictor-Corrector method for MoC mesh generation...")
+
+            # Geometry preprocessing for PC
+            x0, r0 = leading_vertex
+            x1, x2 = self.wall_params["x1"], self.wall_params["x2"]
+            r1, r2 = self.wall_params["r1"], self.wall_params["r2"]
+
+            Z_par = np.linspace(x1, x2, 100).reshape(1, -1)
+            X_par = np.linspace(r1, r2, 100).reshape(1, -1)
+            Y_par = np.zeros_like(X_par)
+
+            pc_solver = PredictorCorrectorExpansion(
+                gamma=self.flow_props.gamma,
+                initial_mach=self.Mach,
+                X_par=X_par,
+                Y_par=Y_par,
+                Z_par=Z_par,
+                x0=x0
+            )
+
+            return pc_solver.solve()
+
+        print("Using Newton-Raphson method for MoC mesh generation...")
         i_max = 30
         delta_s = 0.1
         success = True
@@ -74,7 +103,6 @@ class MoC_Skeleton:
                     log.write(f"ERROR: P1 or P2 is None at wall point ({i},{i}). Halting mesh generation.\n")
                 return moc_mesh, False
 
-
             guess = get_init_NR_guess(P1, P2, is_wall=True)
 
             solution = newton_raphson_system(
@@ -97,7 +125,6 @@ class MoC_Skeleton:
                 log.write(f"Wall Point[{i}][{i}]: {new_point}\n")
 
             if moc_mesh[i][i].x >= 9:
-
                 with open(log_file, "a") as log:
                     log.write(f"Terminating mesh generation: x >= 9 at i={i}\n")
                 break
@@ -109,18 +136,22 @@ if __name__ == "__main__":
     leading_vertex = [3.5010548, 3.5507]
     wall_params = {"x1": 3.5010548, "x2": 9.39262, "r1": 3.5507, "r2": 2.5}
 
-    moc_solver = MoC_Skeleton(Mach=Mach_number, wall_params=wall_params)
-    mesh, success = moc_solver.MoC_Mesher(leading_vertex)
+    method = "PC"  # Change to "NR" to use Newton-Raphson solver
+    moc_solver = MoC_Skeleton(Mach=Mach_number, wall_params=wall_params, method=method)
+    result, success = moc_solver.MoC_Mesher(leading_vertex)
 
     if success:
         print("MoC mesh successfully generated!\n")
 
-        row_to_print = 5
-        print(f"--- Mesh Row {row_to_print} ---")
-        for j, pt in enumerate(mesh[row_to_print]):
-            if pt is not None:
-                print(f"Point[{row_to_print}][{j}]: x={pt.x:.3f}, r={pt.r:.3f}, "
-                    f"theta={np.degrees(pt.theta):.2f}°, M={pt.M:.3f}")
-
+        if method == "PC":
+            ZE, XE, TH, MU, Q, ME, NEP = result
+            print("Shape of ZE:", ZE.shape)
+        else:
+            row_to_print = 5
+            print(f"--- Mesh Row {row_to_print} ---")
+            for j, pt in enumerate(result[row_to_print]):
+                if pt is not None:
+                    print(f"Point[{row_to_print}][{j}]: x={pt.x:.3f}, r={pt.r:.3f}, "
+                          f"theta={np.degrees(pt.theta):.2f}°, M={pt.M:.3f}")
     else:
-        print("MoC mesh generation encountered errors. Check nr_debug_log.txt.\n")
+        print("MoC mesh generation encountered errors. Check log file.\n")
