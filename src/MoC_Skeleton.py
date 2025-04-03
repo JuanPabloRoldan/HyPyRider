@@ -74,6 +74,7 @@ class MoC_Skeleton:
                     log.write(f"ERROR: P1 or P2 is None at wall point ({i},{i}). Halting mesh generation.\n")
                 return moc_mesh, False
 
+
             guess = get_init_NR_guess(P1, P2, is_wall=True)
 
             solution = newton_raphson_system(
@@ -96,6 +97,7 @@ class MoC_Skeleton:
                 log.write(f"Wall Point[{i}][{i}]: {new_point}\n")
 
             if moc_mesh[i][i].x >= 9:
+
                 with open(log_file, "a") as log:
                     log.write(f"Terminating mesh generation: x >= 9 at i={i}\n")
                 break

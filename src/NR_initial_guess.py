@@ -30,6 +30,7 @@ def get_init_NR_guess(p1, p2, is_wall=False):
         flow_solver = FlowProperties()
 
         M3 = 1.005 * M2
+
         mu3 = flow_solver.mach_angle(M3)
         nu3 = flow_solver.prandtl_meyer(M3)
         theta3 = nu3 + nu2
