@@ -1,4 +1,5 @@
-import numpty as np
+import numpy as np
+import taylor_maccoll_solver as tm
 
 class BusemannInlet:
     
@@ -6,10 +7,10 @@ class BusemannInlet:
         """
         Initializes the busemann inlet class.
         """
-        self.mach = mach
         self.theta_s = 17.2 #Degree
         self.M3 = 2.273     #This and the shock angle are set by user
         self.gamma = gamma
+        self.mach = mach
 
     def step2_3(self):
         """
@@ -25,22 +26,24 @@ class BusemannInlet:
         Mn3 = np.sin(self.theta_s)
 
         #Step 3
-        num = np.sqrt(Mn3*(self.gamma-1)+2)
-        den = np.sqrt(2*Mn3-1(self.gamma-1))
-        Mn2 = num/den
+        num = Mn3**2+self.gamma/(self.gamma-1)
+        den = Mn3**2*(2*self.gamma)/(self.gamma-1)-1
+        Mn2 = np.sqrt(num/den)
 
         return{
             "Mn2" : Mn2,
             "Mn3" : Mn3
         }
 
-    def iterator_eqn(self,Mn2,Mn3):
+    def iterator_eqn(self,Mn2):
         """
         Steps 4 through 6 that must be itterated
 
         Parameters:
 
         Returns:
+            Delta = delta
+
         """
         #Step 4
         Delta_geuss = Delta_geuss
@@ -51,9 +54,11 @@ class BusemannInlet:
 
         #Step 6
         num = Mn2**2-1
-        den = Mn2**2(self.gamma+np.cos(2*Beta)**2+2)
-        Delta_improved = 2*np.cot(Beta)(num/den)
+        den = Mn2**2(self.gamma+np.cos(2*Beta)+2)
+        Delta_improved = np.arctan(2*(1/np.tan)*(Beta)(num/den))
 
         return{
-            "Delta" : Delta_improved
+            "Delta" : Delta_improved,
+            "M2" : M2
         }
+    
