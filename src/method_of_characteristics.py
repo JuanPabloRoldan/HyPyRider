@@ -114,13 +114,15 @@ class AxisymmetricMOC:
         )
 
         # Prandtl-Meyer Function (always the same)
-        eq5 = nu3 - nu3_computed
+        # eq5 = nu3 - nu3_computed
 
         # Mach Angle Definition (always the same)
-        eq6 = np.sin(mu3) - (1 / M3)
+        # eq6 = np.sin(mu3) - (1 / M3)
 
-        return np.array([eq1, eq2, eq3, eq4, eq5, eq6])
+        #return np.array([eq1, eq2, eq3, eq4, eq5, eq6])
+        return np.array([eq1, eq2, eq3, eq4])
 
+    
     def evaluate(self, vars, point1, point2, is_wall=False, wall_params=None, log_file='outputs/nr_debug_log.txt'):
         """
         Wrapper for evaluating system residuals.
@@ -139,16 +141,18 @@ class AxisymmetricMOC:
     def compute_jacobian(self, vars, point1, point2, is_wall=False, wall_params=None, log_file='outputs/nr_debug_log.txt'):
         theta3, nu3, mu3, M3, r3, x3 = vars
 
-        J = np.zeros((6, 6))
-        F = np.zeros(6)
+        #J = np.zeros((6, 6))
+        #F = np.zeros(6)
+        J = np.zeros((4, 4))
+        F = np.zeros(4)
 
         try:
             J[0], F[0] = self._jacobian_c_minus_characteristic(vars, point1)
-            J[4], F[4] = self._jacobian_mach_angle(vars)
-            J[5], F[5] = self._jacobian_prandtl_meyer(vars)
+            # J[4], F[4] = self._jacobian_mach_angle(vars)
+            # J[5], F[5] = self._jacobian_prandtl_meyer(vars)
 
-            print("Jacobian row for f[4] (r):", J[4])
-            print("Jacobian row for f[5] (x):", J[5])
+           # print("Jacobian row for f[4] (r):", J[4])
+           # print("Jacobian row for f[5] (x):", J[5])
 
 
             if is_wall:
@@ -184,16 +188,21 @@ class AxisymmetricMOC:
         x2 = wall_params["x2"]
         r1 = wall_params["r1"]
         r2 = wall_params["r2"]
-
-        J = np.zeros(6)
+        
+      # J = np.zeros(6)
+        J = np.zeros(4)
+        
         # J[0] = 0
         # J[1] = 0
         # J[2] = 0
         # J[3] = 0
-        J[4] = 1
-        J[5] = -2 * (r2 - r1) / (x2 - x1)**2 * (x3 - x1)
+
+        ######################################################
+        # J[4] = 1
+        # J[5] = -2 * (r2 - r1) / (x2 - x1)**2 * (x3 - x1)
 
         F = r3 - r1 - (r2 - r1) / (x2 - x1)**2 * (x3 - x1)**2 
+        #######################################################
         return J, F
     
     def _jacobian_c_minus_compatibility_wall(self, vars, point):
@@ -320,43 +329,46 @@ class AxisymmetricMOC:
 
             F = C1 + ((2 * C3)/(C2 + cotC4))
         return J, F
-
-    def _jacobian_mach_angle(self, vars):
+###########################################################################################################
+   # def _jacobian_mach_angle(self, vars):
         theta3, nu3, mu3, M3, r3, x3 = vars
 
-        J = np.zeros(6)
+      #  J = np.zeros(6)
         # J[0] = 0
         # J[1] = 0
-        J[2] = np.cos(mu3)  # dF/dmu3
-        J[3] = 1 / (M3 ** 2)  # dF/dM3
+        #J[2] = np.cos(mu3)  # dF/dmu3
+        #J[3] = 1 / (M3 ** 2)  # dF/dM3
         # J[4] = 0
         # J[5] = 0
         
-        F = np.sin(mu3) - 1 / M3
-        return J, F
+        # F = np.sin(mu3) - 1 / M3
+       # return J, F
 
-    def _jacobian_prandtl_meyer(self, vars):
-        theta3, nu3, mu3, M3, r3, x3 = vars
-        gamma = self.flow_properties.gamma
-        C1 = (gamma + 1) / (gamma - 1)
-        C2 = (M3 ** 2) - 1
+   # def _jacobian_prandtl_meyer(self, vars):
+       # theta3, nu3, mu3, M3, r3, x3 = vars
+      #  gamma = self.flow_properties.gamma
+      #  C1 = (gamma + 1) / (gamma - 1)
+      #  C2 = (M3 ** 2) - 1
 
-        J = np.zeros(6)
-        if M3 <= 1.01: # if M3 is very close to 1, sqrtC2 --> 0, derivative explodes
+        #J = np.zeros(6)
+       # if M3 <= 1.01: # if M3 is very close to 1, sqrtC2 --> 0, derivative explodes
             dF_dM = 1e6
 
-        else:
-            dF_dM = (M3 / np.sqrt(C2)) * ((1 / (1 + C2)) - (1 / (1 + (C2 / C1))))
+       # else:
+          #  dF_dM = (M3 / np.sqrt(C2)) * ((1 / (1 + C2)) - (1 / (1 + (C2 / C1))))
 
         # J[0] = 0
-        J[1] = 1     # dF/dnu3
+       # J[1] = 1     # dF/dnu3
         # J[2] = 0
-        J[3] = dF_dM # dF/dM3
+       # J[3] = dF_dM # dF/dM3
         # J[4] = 0
         # J[5] = 0
 
-        F = nu3 - (np.sqrt(C1) * np.arctan(np.sqrt(C2/C1))) + (np.arctan(np.sqrt(C2)))
-        return J, F
+       # F = nu3 - (np.sqrt(C1) * np.arctan(np.sqrt(C2/C1))) + (np.arctan(np.sqrt(C2)))
+       # return J, F
+###########################################################################################
+
+
 
 # ---- TESTING THE CLASS ---- #
 if __name__ == "__main__":
