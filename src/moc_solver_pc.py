@@ -1,166 +1,194 @@
-# moc_solver_pc.py
-# Predictor-Corrector based Method of Characteristics solver
-
+from point import Point
 import numpy as np
 
-class PredictorCorrectorExpansion:
-    def __init__(self, gamma, initial_mach, X_par, Y_par, Z_par, x0):
+class AxisymMoC:
+    def __init__(self, q_max, gamma, wall_params):
         self.gamma = gamma
-        self.MN = initial_mach
-        self.X_par = X_par
-        self.Y_par = Y_par
-        self.Z_par = Z_par
-        self.x0 = x0
+        self.q_max = q_max
+        self.wall_params = wall_params
 
-    def solve(self):
-        MAX_POINTS = 20
-        ZE = np.zeros((MAX_POINTS, MAX_POINTS))
-        XE = np.zeros((MAX_POINTS, MAX_POINTS))
-        TH = np.zeros((MAX_POINTS, MAX_POINTS))
-        MU = np.zeros((MAX_POINTS, MAX_POINTS))
-        Q  = np.zeros((MAX_POINTS, MAX_POINTS))
-        ME = np.zeros((MAX_POINTS, MAX_POINTS))
-        NEP = np.zeros(MAX_POINTS, dtype=int)
+    def solve_internal_point(self, PA, PB, max_iters=15, tol=1e-7):
 
-        R_par = np.sqrt((self.X_par - self.x0)**2 + self.Y_par**2)[0, :]
-        Z1, X1 = self.Z_par[0], R_par[0]
-        Z2, X2 = 1.0, R_par[-1]
+        z_a = PA.x
+        r_a = PA.r
+        theta_a = PA.theta
+        M_a = PA.M
+        mu_a = np.arcsin(1 / M_a)
+        q_a = PA.q
 
-        MUFS = np.arcsin(1 / self.MN)
-        GFS = np.sqrt(1 / (1 + 2 / ((self.gamma - 1) * self.MN**2)))
-        ER = np.tan(MUFS) * (Z2 - Z1)
+        z_b = PB.x
+        r_b = PB.r
+        theta_b = PB.theta
+        M_b = PB.M
+        mu_b = np.arcsin(1 / M_b)
+        q_b = PB.q
 
-        ZE[0, 0], XE[0, 0] = Z1, X1
-        TH[0, 0], MU[0, 0] = 0.0, MUFS
-        Q[0, 0], ME[0, 0] = GFS, self.MN
+        # ******************************************************
+        # Predictor Step
+        # ******************************************************
 
-        NEP[0] = MAX_POINTS
-        DX = ER / (NEP[0] - 1)
-        DZ = DX / np.tan(MUFS)
-        BC1 = (X2 - X1) / (Z2 - Z1)**2
+        # Equations 2.31a and 2.31b
+        drdz_a = np.tan(theta_a + mu_a)
+        drdz_b = np.tan(theta_b - mu_b)
 
-        for j in range(1, NEP[0]):
-            ZE[0, j] = ZE[0, j - 1] + DZ
-            XE[0, j] = XE[0, j - 1] + DX
-            TH[0, j], MU[0, j] = 0.0, MUFS
-            Q[0, j], ME[0, j] = GFS, self.MN
-            NEP[j] = NEP[0] - j
+        # Equations 2.32a and 2.32b
+        z_c_prime = (r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b)
+        r_c_prime = drdz_a * (z_c_prime - z_a) + r_a
 
-        for i in range(1, NEP[0] - 1):
-            ZB, XB = ZE[i - 1, 1], XE[i - 1, 1]
-            THB, MUB, QB = TH[i - 1, 1], MU[i - 1, 1], Q[i - 1, 1]
-            CSB = np.tan(THB - MUB)
+        # Equation 2.29a
+        denom_q = (1 / (np.tan(mu_a) * q_a)) + (1 / (np.tan(mu_b) * q_b))
+        part1 = theta_b - theta_a
+        part2 = (1 / np.tan(mu_a)) + (1 / np.tan(mu_b))
+        part3 = (np.sin(theta_a) * np.sin(mu_a)) / (r_a * np.cos(theta_a + mu_a)) * (z_c_prime - z_a)
+        part4 = (np.sin(theta_b) * np.sin(mu_b)) / (r_b * np.cos(theta_b - mu_b)) * (z_c_prime - z_b)
 
-            A = BC1
-            B = -2 * Z1 * BC1 - CSB
-            C = BC1 * Z1**2 + CSB * ZB + X1 - XB
-            DET = B**2 - 4 * A * C
+        q_c_prime = (1 / denom_q) * (part1 + part2 + part3 + part4)
 
-            if DET < 0:
-                raise ValueError("Predictor Step Error: Negative discriminant")
+        # Equation 2.29b
+        theta_c_prime = (
+            theta_a
+            + (1 / (q_a * np.tan(mu_a))) * (q_c_prime - q_a)
+            - (np.sin(mu_a) * np.sin(theta_a) / (r_a * np.cos(theta_a + mu_b))) * (z_c_prime - z_a)
+        )
 
-            ZC = (-B + np.sqrt(DET)) / (2 * A)
-            XC = CSB * (ZC - ZB) + XB
-            THC = np.arctan(2 * BC1 * (ZC - Z1))
-            C1 = np.sin(MUB) * np.sin(THB) / (XB * np.cos(THB - MUB))
-            QC = QB * np.tan(MUB) * (C1 * (ZC - ZB) + THB - THC) + QB
+        # Equation 2.27
+        M_c_prime = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_prime) ** 2) - 1)))
 
-            if QC >= 1:
-                raise ValueError("Predictor Step Error: Q >= 1")
+        # Equation 2.26
+        mu_c_prime = np.arcsin(1 / M_c_prime)
 
-            MUC = np.arcsin(np.sqrt((1 / QC**2 - 1) * (self.gamma - 1) / 2))
+        # ******************************************************
+        # Corrector Step (iterative)
+        # ******************************************************
+        for _ in range(max_iters):
+            # Equations 2.35a and 2.35b
+            drdz_a = 0.5 * (np.tan(theta_a + mu_a) + np.tan(theta_c_prime + mu_c_prime))
+            drdz_b = 0.5 * (np.tan(theta_b - mu_b) + np.tan(theta_c_prime - mu_c_prime))
 
-            MI = 0
-            maxIter = 50
-            converged = False
+            # Equation 2.32a and 2.32b
+            z_c_new = (r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b)
+            r_c_new = drdz_a * (z_c_new - z_a) + r_a
 
-            while MI < maxIter and not converged:
-                CSB = 0.5 * (CSB + np.tan(THC - MUC))
-                B = -2 * Z1 * BC1 - CSB
-                C = BC1 * Z1**2 + CSB * ZB + X1 - XB
-                DET = B**2 - 4 * A * C
+            C1 = 0.5 * ((1 / (np.tan(mu_c_prime) * q_c_prime)) + (1 / (np.tan(mu_a) * q_a)))
+            C2_a = np.sin(mu_a) * np.sin(theta_a) / (r_a * np.cos(theta_a + mu_a))
+            C2_b = np.sin(mu_c_prime) * np.sin(theta_c_prime) / (r_c_prime * np.cos(theta_c_prime + mu_c_prime))
+            C2 = 0.5 * (C2_a + C2_b) * (z_c_new - z_a)
 
-                if DET < 0:
-                    raise ValueError("Corrector Step Error: Negative discriminant")
+            C3 = 0.5 * ((1 / (np.tan(mu_c_prime) * q_c_prime)) + (1 / (np.tan(mu_b) * q_b)))
+            C4_a = np.sin(mu_b) * np.sin(theta_b) / (r_b * np.cos(theta_b - mu_b))
+            C4_b = np.sin(mu_c_prime) * np.sin(theta_c_prime) / (r_c_prime * np.cos(theta_c_prime - mu_c_prime))
+            C4 = 0.5 * (C4_a + C4_b) * (z_c_new - z_b)
 
-                ZE[i, 0] = (-B + np.sqrt(DET)) / (2 * A)
-                XE[i, 0] = CSB * (ZE[i, 0] - ZB) + XB
-                TH[i, 0] = np.arctan(2 * BC1 * (ZE[i, 0] - Z1))
+            # Equations 2.33a and 2.33b
+            q_c_new = (C2 + C4 + (theta_b - theta_a) + (C1 * q_a) + (C3 * q_b)) / (C1 + C3)
+            theta_c_new = theta_a + C1 * (q_c_new - q_a) - C2
 
-                C3 = 0.5 * (1 / (np.tan(MUC) * QC) + 1 / (np.tan(MUB) * QB))
-                C4 = 0.5 * (np.sin(MUB) * np.sin(THB) / (XB * np.cos(THB - MUB)) +
-                           np.sin(MUC) * np.sin(THC) / (XC * np.cos(THC - MUC))) * (ZE[i, 0] - ZB)
-                Q[i, 0] = (THB - TH[i, 0] + C4) / C3 + QB
+            # Equation 2.27
+            M_c_new = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_new) ** 2) - 1)))
 
-                if Q[i, 0] >= 1:
-                    raise ValueError("Corrector Step Error: Q >= 1")
+            # Equation 2.26
+            mu_c_new = np.arcsin(1 / M_c_new)
 
-                ME[i, 0] = 1 / np.sqrt((1 / Q[i, 0]**2 - 1) * (self.gamma - 1) / 2)
-                MU[i, 0] = np.arcsin(1 / ME[i, 0])
+            if abs(q_c_new - q_c_prime) / q_c_prime < tol:
+                
+                break
 
-                err = abs(Q[i, 0] - QC) / QC
-                if err < 1e-7:
-                    converged = True
-                else:
-                    QC = Q[i, 0]
-                    THC = TH[i, 0]
-                    MUC = MU[i, 0]
-                    XC = XE[i, 0]
-                    MI += 1
+            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime = z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new
 
-            for j in range(1, NEP[i]):
-                k = j - 1
-                l = j + 1
-                i1 = i - 1
+        return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
 
-                XA, YA = ZE[i, k], XE[i, k]
-                THA, MUA, QA = TH[i, k], MU[i, k], Q[i, k]
+    def solve_wall_point(self, PB, max_iters=15, tol=1e-7):
+        
+        z_b = PB.x
+        r_b = PB.r
+        theta_b = PB.theta
+        M_b = PB.M
+        mu_b = np.arcsin(1 / M_b)
+        q_b = PB.q
 
-                ZB, XB = ZE[i1, l], XE[i1, l]
-                THB, MUB, QB = TH[i1, l], MU[i1, l], Q[i1, l]
+        z1 = self.wall_params["x1"]
+        z2 = self.wall_params["x2"]
+        r1 = self.wall_params["r1"]
+        r2 = self.wall_params["r2"]
 
-                CSA = np.tan(THA + MUA)
-                CSB = np.tan(THB - MUB)
+        # ******************************************************
+        # Predictor Step
+        # ******************************************************
 
-                ZC = ((XB - YA) + XA * CSA - ZB * CSB) / (CSA - CSB)
-                XC = CSA * (ZC - XA) + YA
+        # Equation 2.31b
+        drdz_b = np.tan(theta_b - mu_b)
 
-                C1 = 1 / (1 / (np.tan(MUA) * QA) + 1 / (np.tan(MUB) * QB))
-                C2 = np.sin(THA) * np.sin(MUA) * (ZC - XA) / (YA * np.cos(THA + MUA))
-                C3 = np.sin(MUB) * np.sin(THB) * (ZC - ZB) / (XB * np.cos(THB - MUB))
-                QC = C1 * (THB - THA + C2 + C3)
-                THC = THA + (QC - QA) / (QA * np.tan(MUA)) - C2
-                MUC = np.arcsin(np.sqrt((1 / QC**2 - 1) * ((self.gamma - 1) / 2)))
+        # Equation 2.38
+        a = drdz_b
+        b = (r2 - r1) / (z2 - z1) ** 2
+        c = b * z1 * z1 + a * z_b - r_b -r1
+        det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
+        if det < 0:
+            return None
+        z_c_prime = (2 * b * z1 + a + np.sqrt(det)) / (2 * b)
 
-                NI = 0
-                converged = False
-                while NI < maxIter and not converged:
-                    CSA = 0.5 * (CSA + np.tan(THC + MUC))
-                    CSB = 0.5 * (CSB + np.tan(THC - MUC))
+        # Equation 2.36
+        r_c_prime = r1 + ((r2 - r1) / ((z2 - z1) ** 2)) * (z_c_prime - z1) ** 2
 
-                    ZE[i, j] = ((XB - YA) + XA * CSA - ZB * CSB) / (CSA - CSB)
-                    XE[i, j] = CSA * (ZE[i, j] - XA) + YA
+        # Equation 2.37
+        theta_c_prime = np.arctan(2 * (r2 - r1) * (z_c_prime - z1) / (z2 - z1) ** 2)
 
-                    C1 = 0.5 * (1 / (QC + np.tan(MUC)) + 1 / (QA * np.tan(MUA)))
-                    C2 = 0.5 * (np.sin(MUA) * np.sin(THA) / (YA * np.cos(THA + MUA)) +
-                                np.sin(MUC) * np.sin(THC) / (XC * np.cos(THC + MUC))) * (ZE[i, j] - XA)
-                    C3 = 0.5 * (1 / (QC * np.tan(MUC)) + 1 / (QB * np.tan(MUB)))
-                    C4 = 0.5 * (np.sin(MUB) * np.sin(THB) / (XB * np.cos(THB - MUB)) +
-                                np.sin(MUC) * np.sin(THC) / (XC * np.cos(THC - MUC))) * (ZE[i, j] - ZB)
+        # Equation 2.40
+        q_c_a = np.sin(mu_b) * np.sin(theta_b) / (r_b * np.cos(theta_b - mu_b))
+        q_c_b = theta_b - theta_c_prime
+        q_c_prime = q_b * np.tan(mu_b) * (q_c_a * (z_c_prime - z_b) + q_c_b) + q_b
 
-                    Q[i, j] = (C2 + C4 + THB - THA + C1 * QA + C3 * QB) / (C1 + C3)
-                    TH[i, j] = THA + C1 * (Q[i, j] - QA) - C2
-                    ME[i, j] = 1 / np.sqrt((1 / Q[i, j]**2 - 1) * (self.gamma - 1) / 2)
-                    MU[i, j] = np.arcsin(1 / ME[i, j])
+        # Equation 2.27
+        M_c_prime = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_prime) ** 2) - 1)))
 
-                    err = abs(Q[i, j] - QC) / QC
-                    if err < 1e-7:
-                        converged = True
-                    else:
-                        XC = XE[i, j]
-                        THC = TH[i, j]
-                        MUC = MU[i, j]
-                        QC = Q[i, j]
-                        NI += 1
+        # Equation 2.26
+        mu_c_prime = np.arcsin(1 / M_c_prime)
 
-        return ZE, XE, TH, MU, Q, ME, NEP
+        # ******************************************************
+        # Corrector Step (iterative)
+        # ******************************************************
+        for _ in range(max_iters):
+
+            # Equation 2.35b
+            drdz_b = 0.5 * (np.tan(theta_b - mu_b) + np.tan(theta_c_prime - mu_c_prime))
+
+            # Equation 2.38
+            a = drdz_b
+            b = (r2 - r1) / (z2 - z1) ** 2
+            c = b * z1 * z1 + a * z_b - r_b -r1
+            det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
+            z_c_new = (2 * b * z1 + a + np.sqrt(det)) / (2 * b)
+
+            # Equation 2.36
+            r_c_new = r1 + ((r2 - r1) / ((z2 - z1) ** 2)) * (z_c_new - z1) ** 2
+
+            # Equation 2.37
+            theta_c_new = np.arctan(2 * (r2 - r1) * (z_c_new - z1) / (z2 - z1) ** 2)
+
+            C3 = 0.5 * ((1 / (np.tan(mu_c_prime) * q_c_prime)) + (1 / (np.tan(mu_b) * q_b)))
+            C4_a = np.sin(mu_b) * np.sin(theta_b) / (r_b * np.cos(theta_b - mu_b))
+            C4_b = np.sin(mu_c_prime) * np.sin(theta_c_prime) / (r_c_prime * np.cos(theta_c_prime - mu_c_prime))
+            C4 = 0.5 * (C4_a + C4_b) * (z_c_new - z_b)
+
+            # Equation 2.41
+            q_c_new = ((theta_b - theta_c_new + C4) / C3) + q_b
+
+            # Equation 2.27
+            M_c_new = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_new) ** 2) - 1)))
+
+            # Equation 2.26
+            mu_c_new = np.arcsin(1 / M_c_new)
+
+            if abs(q_c_new - q_c_prime) / q_c_prime < tol:
+            
+                break
+
+            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, mu_c_prime, q_c_prime = z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new, q_c_new
+
+        return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
+
+# ---- TESTING THE CLASS ---- #
+if __name__ == "__main__":
+
+    # Define wall parameters
+    wall_params = {"x1": 3.5010548, "x2": 9.39262, "r1": -3.5507, "r2": -2.5}
