@@ -59,14 +59,17 @@ class StreamlineIntegrator:
             
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
             # alpha = np.arctan(abs(z / y))
-            dt = 0.02
+            # dt = 0.02
+            d_theta = 0.02
 
             # Interpolate V_r and V_theta from tabulated data
             V_r = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
             V_theta = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
 
             # Update theta and r
-            d_theta = V_theta * dt / r
+            # d_theta = V_theta * dt / r
+            dt = d_theta * r / V_theta
+            
             theta += d_theta
             r += (V_r * dt)
             w = r * np.sin(theta)
