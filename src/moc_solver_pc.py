@@ -89,8 +89,9 @@ class AxisymMoC:
             theta_c_new = theta_a + C1 * (q_c_new - q_a) - C2
 
             # Equation 2.27
-            M_c_new = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_new) ** 2) - 1)))
-
+            #M_c_new = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_new) ** 2) - 1)))
+            M_c_new = np.sqrt( 1 + (2 / (self.gamma - 1))* (1 / q_c_prime) ** 2) *self.q_max
+            
             # Equation 2.26
             mu_c_new = np.arcsin(1 / M_c_new)
 
@@ -126,7 +127,8 @@ class AxisymMoC:
         # Equation 2.38
         a = drdz_b
         b = (r2 - r1) / (z2 - z1) ** 2
-        c = b * z1 * z1 + a * z_b - r_b -r1
+        c = b * (z1 * z1) + (a * z_b) - r_b -r1
+        
         det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
         if det < 0:
             return None
