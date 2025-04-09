@@ -32,15 +32,17 @@ class AxisymMoC:
         drdz_b = np.tan(theta_b - mu_b)
 
         # Equations 2.32a and 2.32b
-        z_c_prime = (r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b)
+        #z_c_prime = ((r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b))
+        z_c_prime = ((r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b))/(drdz_a - drdz_b)
         r_c_prime = drdz_a * (z_c_prime - z_a) + r_a
 
         # Equation 2.29a
-        denom_q = (1 / (np.tan(mu_a) * q_a)) + (1 / (np.tan(mu_b) * q_b))
+        #denom_q = (1 / (np.tan(mu_a) * q_a)) + (1 / (np.tan(mu_b) * q_b))
+        denom_q = ((1 / (np.tan(mu_a))) / q_a) + ((1 / (np.tan(mu_b))) / q_b)
         part1 = theta_b - theta_a
         part2 = (1 / np.tan(mu_a)) + (1 / np.tan(mu_b))
-        part3 = (np.sin(theta_a) * np.sin(mu_a)) / (r_a * np.cos(theta_a + mu_a)) * (z_c_prime - z_a)
-        part4 = (np.sin(theta_b) * np.sin(mu_b)) / (r_b * np.cos(theta_b - mu_b)) * (z_c_prime - z_b)
+        part3 = ((np.sin(theta_a) * np.sin(mu_a)) / (r_a * np.cos(theta_a + mu_a)) )* (z_c_prime - z_a)
+        part4 = ((np.sin(theta_b) * np.sin(mu_b)) / (r_b * np.cos(theta_b - mu_b)) )* (z_c_prime - z_b)
 
         q_c_prime = (1 / denom_q) * (part1 + part2 + part3 + part4)
 
@@ -52,7 +54,8 @@ class AxisymMoC:
         )
 
         # Equation 2.27
-        M_c_prime = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_prime) ** 2) - 1)))
+        #M_c_prime = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_prime) ** 2) - 1)))
+        M_c_prime = np.sqrt( 1 + (2 / (self.gamma - 1))* (1 / q_c_prime) ** 2) *self.q_max
 
         # Equation 2.26
         mu_c_prime = np.arcsin(1 / M_c_prime)
@@ -66,10 +69,12 @@ class AxisymMoC:
             drdz_b = 0.5 * (np.tan(theta_b - mu_b) + np.tan(theta_c_prime - mu_c_prime))
 
             # Equation 2.32a and 2.32b
-            z_c_new = (r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b)
+            #z_c_new = (r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b)
+            z_c_new = ((r_b - r_a) + (z_a * drdz_a) - (z_b * drdz_b))/(drdz_a -drdz_b)
             r_c_new = drdz_a * (z_c_new - z_a) + r_a
 
             C1 = 0.5 * ((1 / (np.tan(mu_c_prime) * q_c_prime)) + (1 / (np.tan(mu_a) * q_a)))
+            
             C2_a = np.sin(mu_a) * np.sin(theta_a) / (r_a * np.cos(theta_a + mu_a))
             C2_b = np.sin(mu_c_prime) * np.sin(theta_c_prime) / (r_c_prime * np.cos(theta_c_prime + mu_c_prime))
             C2 = 0.5 * (C2_a + C2_b) * (z_c_new - z_a)
