@@ -1,6 +1,7 @@
 from point import Point
 from moc_solver_pc import AxisymMoC
 import numpy as np
+import matplotlib.pyplot as plt
 
 class MoC_Skeleton:
     def __init__(self, M_inf, a_inf, gamma, wall_params):
@@ -14,13 +15,13 @@ class MoC_Skeleton:
         self.moc_solver = AxisymMoC(self.q_max, self.gamma, self.wall_params)
 
     def MoC_Mesher(self, log_file="outputs/nr_debug_log.txt"):
-        i_max = 30
+        i_max = 50
         delta_s = 0.1
         success = True
 
         moc_mesh = np.empty((i_max, i_max), dtype=object)
-        x0  = wall_params["x1"]
-        r0 = wall_params["r1"]
+        x0  = self.wall_params["x1"]
+        r0 = self.wall_params["r1"]
         init_point = Point(x0, r0, 0, self.M_inf, self.q_inf)
         print(init_point)
         moc_mesh[0][0] = init_point
@@ -43,6 +44,7 @@ class MoC_Skeleton:
                 PA = moc_mesh[i - 1][j]
                 PB = moc_mesh[i][j - 1]
                 PC = self.moc_solver.solve_internal_point(PA, PB)
+    
                 if PC is None:
                     return moc_mesh
                 moc_mesh[i][j] = PC
@@ -50,7 +52,6 @@ class MoC_Skeleton:
 
             # for a point, C, at the wall
             PB = moc_mesh[i][i - 1]
-            print(PB)
             PC = self.moc_solver.solve_wall_point(PB)
             moc_mesh[i][i] = PC
             print(moc_mesh[i][i])
@@ -67,3 +68,34 @@ if __name__ == "__main__":
 
     moc_solver = MoC_Skeleton(M_inf, a_inf, gamma, wall_params)
     mesh = moc_solver.MoC_Mesher()
+
+    z1 = wall_params["x1"]
+    z2 = wall_params["x2"]
+    r1 = wall_params["r1"]
+    r2 = wall_params["r2"]
+
+    # --- Collect all valid MoC points ---
+    all_points = [pt for row in mesh for pt in row if pt is not None and not np.isnan(pt.x) and not np.isnan(pt.r)]
+    x_vals = [pt.x for pt in all_points]
+    r_vals = [pt.r for pt in all_points]
+
+    # --- Define the parabolic surface function ---
+    def r_b(z):
+        return ((r2 - r1) / (z2 - z1)**2) * (z - z1)**2 + r1
+
+    # --- Generate z and r values along the parabolic wall ---
+    z_vals = np.linspace(z1, z2, 300)
+    r_wall = r_b(z_vals)
+
+    # --- Plot everything ---
+    plt.figure()
+    plt.scatter(x_vals, r_vals, s=10, label="MoC Mesh Points")
+    plt.plot(z_vals, r_wall, color='red', linewidth=2, label="Parabolic Wall Surface")
+
+    plt.xlabel("x")
+    plt.ylabel("r")
+    plt.title("MoC Points with Parabolic Body Surface")
+    plt.grid(True)
+    plt.axis("equal")
+    plt.legend()
+    plt.show()
