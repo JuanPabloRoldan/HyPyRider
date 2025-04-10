@@ -1,10 +1,11 @@
 import numpy as np
 import taylor_maccoll_solver as tm
-import as
+import streamline_integrator as si
+import pandas as pd
 
 class BusemannInlet:
     
-    def __init__(self,mach,gamma):
+    def __init__(self,mach,gamma,Temp2):
         """
         Initializes the busemann inlet class.
         """
@@ -12,6 +13,9 @@ class BusemannInlet:
         self.M3 = 2.273     #This and the shock angle are set by user
         self.gamma = gamma
         self.mach = mach
+        self.gasConst = 287
+        self.Temp2 = Temp2
+        self.speed_sound = self.gamma*self.gasConst*self.Temp2
 
     def step2_3(self):
         """
@@ -61,8 +65,8 @@ class BusemannInlet:
 
             # Step 6
             num = Mn2**2-1
-            den = Mn2**2(self.gamma+np.cos(2*Beta)+2)
-            Delta_improved = np.arctan(2*(1/np.tan)*(Beta)(num/den))
+            den = Mn2**2*(self.gamma+np.cos(2*Beta)+2)
+            Delta_improved = np.arctan(2 * (1 / np.tan(Beta)) * (num / den))
 
             diff = abs(Delta_improved - Delta)
             Delta = Delta_improved
@@ -91,13 +95,28 @@ class BusemannInlet:
         df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, Vr0=Vr0, dVr0=dVr0)
         return df
 
-# Example Usage
+   
+
+    """
+    A storage array must be generated for points along the desired streamline
+
+    Get the taylor mcoll intergrator to 
+
+    M3 and theta_s are inputs
+    """
+
 if __name__ == "__main__":
-    # Obtain normal mach 2 and 3
-    Mn2 = BusemannInlet.step2_3()
+    inlet = BusemannInlet(mach=3.0, gamma=1.4,Temp2=350.0)
 
-    # Itterate to find delta
-    delta, M2 = BusemannInlet.step456(Mn2)
+    # Step 2-3
+    results = inlet.step2_3()
+    Mn2 = results["Mn2"]
+    Mn3 = results["Mn3"]
 
-    # Solve taylor mccoll
-    df = BusemannInlet.solve_conical_flow(M2, delta)
+    # Step 4-6
+    step456_results = inlet.step_456(Mn2)
+    delta = step456_results["Delta"]
+    M2 = step456_results["M2"]
+
+    # Taylor-Maccoll solver
+    df = inlet.solve_conical_flow(M2, delta)
