@@ -95,16 +95,6 @@ class BusemannInlet:
         df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, Vr0=Vr0, dVr0=dVr0)
         return df
 
-   
-
-    """
-    A storage array must be generated for points along the desired streamline
-
-    Get the taylor mcoll intergrator to 
-
-    M3 and theta_s are inputs
-    """
-
 if __name__ == "__main__":
     inlet = BusemannInlet(mach=3.0, gamma=1.4,Temp2=350.0)
 
