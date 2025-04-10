@@ -1,5 +1,6 @@
 import numpy as np
 import taylor_maccoll_solver as tm
+import as
 
 class BusemannInlet:
     
@@ -35,30 +36,68 @@ class BusemannInlet:
             "Mn3" : Mn3
         }
 
-    def iterator_eqn(self,Mn2):
+    def step_456(self, Mn2, tol=1e-5, max_iter=100):
         """
-        Steps 4 through 6 that must be itterated
+        Steps 4 through 6 that iterate until delta converges.
 
         Parameters:
+            Mn2 (float): Normal Mach number from step 3.
+            tol (float): Tolerance for convergence.
+            max_iter (int): Maximum iterations allowed.
 
         Returns:
-            Delta = delta
-
+            dict: Contains converged delta and M2.
         """
-        #Step 4
-        Delta_geuss = Delta_geuss
-        Beta = self.theta_s+Delta_geuss
+        # Step 4
+        Delta = np.radians(5)  # 5 degrees as an initial guess
+        diff = 1.0
+        iteration = 0
 
-        #Step 5
-        M2 = Mn2/np.sin(Beta)
+        while diff > tol and iteration < max_iter:
+            Beta = self.theta_s + Delta
 
-        #Step 6
-        num = Mn2**2-1
-        den = Mn2**2(self.gamma+np.cos(2*Beta)+2)
-        Delta_improved = np.arctan(2*(1/np.tan)*(Beta)(num/den))
+            # Step 5
+            M2 = Mn2 / np.sin(Beta)
 
-        return{
-            "Delta" : Delta_improved,
-            "M2" : M2
+            # Step 6
+            num = Mn2**2-1
+            den = Mn2**2(self.gamma+np.cos(2*Beta)+2)
+            Delta_improved = np.arctan(2*(1/np.tan)*(Beta)(num/den))
+
+            diff = abs(Delta_improved - Delta)
+            Delta = Delta_improved
+            iteration += 1
+
+        return {
+            "Delta": Delta,
+            "M2": M2,
+            "Iterations": iteration
         }
-    
+
+    def solve_conical_flow(self, M2, Delta):
+        """
+        Solves the conical flow field using the Taylor-Maccoll solver.
+
+        Parameters:
+            M2 (float): Downstream Mach number.
+            Delta (float): Flow deflection angle.
+
+        Returns:
+            pd.DataFrame: Taylor-Maccoll flow field table.
+        """
+        solver = tm.TaylorMaccollSolver(gamma=self.gamma)
+        theta_c = np.radians(self.theta_s_deg)  # cone angle ≈ shock angle
+        V_prime, Vr0, dVr0 = solver.calculate_velocity_components(M2, theta_c, Delta)
+        df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, Vr0=Vr0, dVr0=dVr0)
+        return df
+
+# Example Usage
+if __name__ == "__main__":
+    # Obtain normal mach 2 and 3
+    Mn2 = BusemannInlet.step2_3()
+
+    # Itterate to find delta
+    delta, M2 = BusemannInlet.step456(Mn2)
+
+    # Solve taylor mccoll
+    df = BusemannInlet.solve_conical_flow(M2, delta)
