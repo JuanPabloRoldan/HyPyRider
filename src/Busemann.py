@@ -95,6 +95,28 @@ class BusemannInlet:
         df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, Vr0=Vr0, dVr0=dVr0)
         return df
 
+    def Potentialmoccollfixer(self,Mn2, Mn3):  #####MAYBE DELETE LATER
+        """
+        I think fixes the taylor maccoll issue.
+        TM is getting its own vr and Vtheta
+
+        Parameters:
+            Mn2
+            Mn3
+
+        Returns:
+            V theta
+            V r
+        """  
+        V_theta = -Mn2*np.sqrt(self.gamma*self.gasConst*self.Temp2)
+        V_r = (Mn3**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
+
+        return{
+            "V_Theta" : V_theta,
+            "Vr" : V_r
+        }
+
+
 if __name__ == "__main__":
     inlet = BusemannInlet(mach=3.0, gamma=1.4,Temp2=350.0)
 
