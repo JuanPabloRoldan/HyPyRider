@@ -61,9 +61,10 @@ class MoC_Skeleton:
         return moc_mesh
 
 if __name__ == "__main__":
-    M_inf = 10.0
-    a_inf = 300
+    M_inf = 7
     gamma = 1.2
+    a_inf = np.sqrt(gamma * 287 * 231.64) # T_inf at 30,000 m
+
     wall_params = {"x1": 3.5010548, "x2": 9.39262, "r1": 3.5507, "r2": 2.5}
 
     moc_solver = MoC_Skeleton(M_inf, a_inf, gamma, wall_params)
@@ -87,14 +88,28 @@ if __name__ == "__main__":
     z_vals = np.linspace(z1, z2, 300)
     r_wall = r_b(z_vals)
 
-    # --- Plot everything ---
+    # --- Plotting ---
     plt.figure()
     plt.scatter(x_vals, r_vals, s=10, label="MoC Mesh Points")
+
+    # Add thin black mesh lines
+    for row in mesh:
+        valid_row = [pt for pt in row if pt is not None and not np.isnan(pt.x) and not np.isnan(pt.r)]
+        if len(valid_row) > 1:
+            plt.plot([pt.x for pt in valid_row], [pt.r for pt in valid_row], color='black', linewidth=0.5)
+
+    for col_idx in range(len(mesh[0])):
+        col = [mesh[i][col_idx] for i in range(len(mesh)) if col_idx < len(mesh[i]) and mesh[i][col_idx] is not None]
+        valid_col = [pt for pt in col if not np.isnan(pt.x) and not np.isnan(pt.r)]
+        if len(valid_col) > 1:
+            plt.plot([pt.x for pt in valid_col], [pt.r for pt in valid_col], color='black', linewidth=0.5)
+
+    # Plot wall surface
     plt.plot(z_vals, r_wall, color='red', linewidth=2, label="Parabolic Wall Surface")
 
     plt.xlabel("x")
     plt.ylabel("r")
-    plt.title("MoC Points with Parabolic Body Surface")
+    plt.title("MoC Points with Parabolic Body Surface and Mesh Lines")
     plt.grid(True)
     plt.axis("equal")
     plt.legend()
