@@ -90,7 +90,7 @@ class BusemannInlet:
             pd.DataFrame: Taylor-Maccoll flow field table.
         """
         solver = tm.TaylorMaccollSolver(gamma=self.gamma)
-        theta_c = np.radians(self.theta_s_deg)  # cone angle ≈ shock angle
+        theta_c = np.radians(self.theta_s)  # cone angle ≈ shock angle
         V_prime, Vr0, dVr0 = solver.calculate_velocity_components(M2, theta_c, Delta)
         df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, Vr0=Vr0, dVr0=dVr0)
         return df
