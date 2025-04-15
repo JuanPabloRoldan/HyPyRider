@@ -42,6 +42,7 @@ class TaylorMaccollSolver:
         self.gamma = gamma
         self.h = step_size
 
+    """
     def calculate_velocity_components(self, M, theta, delta):
         '''
         Calculates and decomposes the normalized velocity magnitude (V') into its components.
@@ -76,6 +77,28 @@ class TaylorMaccollSolver:
 
         # Return the computed values
         return V_prime, V_r, V_theta
+    """
+    
+    def Potentialmoccollfixer(self,Mn2, Mn3):  #####MAYBE DELETE LATER
+        """
+        I think fixes the taylor maccoll issue.
+        TM is getting its own vr and Vtheta
+
+        Parameters:
+            Mn2
+            Mn3
+
+        Returns:
+            V theta
+            V r
+        """  
+        self.V_theta = -Mn2*np.sqrt(self.gamma*self.gasConst*self.Temp2)
+        self.V_r = (Mn3**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
+
+        return{
+            "V_Theta" : self.V_theta,
+            "Vr" : self.V_r
+        }
 
     def calculate_Mach_from_components(self, V_r, V_theta):
         '''
