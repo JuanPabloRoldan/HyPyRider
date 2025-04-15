@@ -131,4 +131,4 @@ if __name__ == "__main__":
     M2 = step456_results["M2"]
 
     # Taylor-Maccoll solver
-    df = inlet.solve_conical_flow(self, M2, delta, Mn2, Mn3)
+    df = inlet.solve_conical_flow(M2, delta, Mn2, Mn3)
