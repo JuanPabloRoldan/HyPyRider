@@ -79,7 +79,7 @@ class TaylorMaccollSolver:
         return V_prime, V_r, V_theta
     """
     
-    def Potentialmoccollfixer(self,Mn2, Mn3):  #####MAYBE DELETE LATER
+    def calculate_velocity_components(self,Mn2, Mn3):  #####MAYBE DELETE LATER
         """
         I think fixes the taylor maccoll issue.
         TM is getting its own vr and Vtheta
