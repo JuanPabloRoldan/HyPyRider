@@ -78,7 +78,7 @@ class BusemannInlet:
             "Iterations": iteration
         }
 
-    def solve_conical_flow(self, M2, Delta):
+    def solve_conical_flow(self, M2, Delta,Mn2, Mn3):
         """
         Solves the conical flow field using the Taylor-Maccoll solver.
 
