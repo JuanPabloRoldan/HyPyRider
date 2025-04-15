@@ -41,6 +41,7 @@ class TaylorMaccollSolver:
         '''
         self.gamma = gamma
         self.h = step_size
+        self.gasConst = 278.15
 
     """
     def calculate_velocity_components(self, M, theta, delta):
