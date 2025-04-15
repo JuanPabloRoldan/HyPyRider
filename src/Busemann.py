@@ -91,7 +91,7 @@ class BusemannInlet:
         """
         solver = tm.TaylorMaccollSolver(gamma=self.gamma)
         theta_c = np.radians(self.theta_s)  # cone angle ≈ shock angle
-        V_theta, V_r = Potentialmoccollfixer(self,Mn2,Mn3)
+        V_theta, V_r = BusemannInlet.Potentialmoccollfixer(self,Mn2,Mn3)
         #V_theta, V_r = solver.calculate_velocity_components(Mn2, Mn3)
         df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, Vr0=Vr0, dVr0=dVr0)
         return df
