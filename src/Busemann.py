@@ -68,7 +68,7 @@ class BusemannInlet:
             den = Mn2**2*(self.gamma+np.cos(2*Beta)+2)
             Delta_improved = np.arctan(2 * (1 / np.tan(Beta)) * (num / den))
 
-            diff = abs(Delta_improved - Delta)
+            diff = abs((Delta_improved - Delta)/Delta_improved)
             Delta = Delta_improved
             iteration += 1
 
@@ -93,7 +93,7 @@ class BusemannInlet:
         theta_c = np.radians(self.theta_s)  # cone angle ≈ shock angle
         V_theta, V_r = BusemannInlet.Potentialmoccollfixer(self,Mn2,Mn3)
         #V_theta, V_r = solver.calculate_velocity_components(Mn2, Mn3)
-        df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, Vr0=Vr0, dVr0=dVr0)
+        df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, V_r=Vr0, dVr0=dVr0)
         return df
 
     def Potentialmoccollfixer(self,Mn2, Mn3):  #####MAYBE DELETE LATER
