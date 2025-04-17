@@ -14,7 +14,7 @@ class BusemannInlet:
         self.gamma = gamma
         self.mach = mach
         self.gasConst = 287
-        self.Temp2 = Temp2
+        self.Temp2 = 293 #Maybe the correct temperature 2
         self.speed_sound = self.gamma*self.gasConst*self.Temp2
 
     def step2_3(self):
@@ -91,26 +91,26 @@ class BusemannInlet:
         """
         solver = tm.TaylorMaccollSolver(gamma=self.gamma)
         theta_c = np.radians(self.theta_s)  # cone angle ≈ shock angle
-        V_theta, V_r = BusemannInlet.Potentialmoccollfixer(self,Mn2,Mn3)
+        V_theta, V_r = BusemannInlet.Potentialmoccollfixer(M2, Mn2)
         #V_theta, V_r = solver.calculate_velocity_components(Mn2, Mn3)
         df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, V_r=Vr0, dVr0=dVr0)
         return df
 
-    def Potentialmoccollfixer(self,Mn2, Mn3):  #####MAYBE DELETE LATER
+    def Potentialmoccollfixer(self,Mn2, M2):  #####MAYBE DELETE LATER
         """
         I think fixes the taylor maccoll issue.
         TM is getting its own vr and Vtheta
 
         Parameters:
             Mn2
-            Mn3
+            M2
 
         Returns:
             V theta
             V r
         """  
         V_theta = -Mn2*np.sqrt(self.gamma*self.gasConst*self.Temp2)
-        V_r = (Mn3**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
+        V_r = (M2**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
 
         return{
             "V_Theta" : V_theta,
