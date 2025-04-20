@@ -15,3 +15,53 @@ xi1 - Next xi value
 x1 - Next x value
 y1 - Next y value
 """
+import numpy as np
+from scipy.integrate import solve_ivp
+from scipy.interpolate import RegularGridInterpolator
+
+def metric_derivative_solver(v0, u0, x0, y0, eta0, xi0, grid_points, metric_values):
+    """
+    Solves the metric derivative equations using the provided initial conditions and grid points.
+    
+    Parameters:
+    v0 (float): Initial radial component of velocity.
+    u0 (float): Initial x component of velocity.
+    x0 (float): Initial x coordinate.
+    y0 (float): Initial y coordinate.
+    eta0 (float): Initial eta grid value.
+    xi0 (float): Initial xi grid value.
+    grid_points (tuple): Tuple containing the grid points for interpolation.
+    metric_values (numpy.ndarray): Array containing the metric values for interpolation.
+
+    Returns:
+    tuple: Next eta value, next xi value, next x value, next y value.
+    """
+    
+    # Unpack grid points
+    eta_grid, xi_grid = grid_points
+
+    # Create interpolator for the metric values
+    interpolator = RegularGridInterpolator((eta_grid, xi_grid), metric_values)
+
+    # Define the system of ODEs
+    def odes(t, z):
+        x, y, eta, xi = z
+        metric = interpolator([[eta, xi]])[0]  # Ensure correct input shape
+        v = metric[0]
+        u = metric[1]
+        return [u, v, v, u]  # Or whatever your equations demand
+
+
+    # Set initial conditions
+    z0 = [x0, y0, eta0, xi0]
+    
+    # Time span for integration
+    t_span = (0, 1)  # Adjust as needed
+
+    # Solve the ODEs
+    sol = solve_ivp(odes, t_span, z0)
+
+    # Extract the final values
+    x1, y1, eta1, xi1 = sol.y[:, -1]
+
+    return eta1, xi1, x1, y1
