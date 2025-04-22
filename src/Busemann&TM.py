@@ -44,7 +44,7 @@ class TaylorMaccollSolver:
         self.gasConst = 278.15 
         self.theta_s = 17.2 #Degree
         self.M3 = 2.273     #This and the shock angle are set by user
-        self.mach = mach
+        self.mach = 7
         self.gasConst = 287
         self.Temp2 = 293    #Maybe the correct temperature 2
         self.speed_sound = self.gamma*self.gasConst*self.Temp2
