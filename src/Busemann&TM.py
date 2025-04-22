@@ -73,7 +73,7 @@ class TaylorMaccollSolver:
             "Mn3" : Mn3
         }
 
-   def step_456(self, Mn2, tol=1e-5, max_iter=100):
+    def step_456(self, Mn2, tol=1e-5, max_iter=100):
         """
         Steps 4 through 6 that iterate until delta converges.
 
