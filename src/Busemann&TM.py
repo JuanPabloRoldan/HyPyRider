@@ -303,6 +303,7 @@ class TaylorMaccollSolver:
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             M = self.calculate_Mach_from_components(Vr, dVr)
+            print(M)
 
             isentropic_properties = isentropic_solver.isentropic_relations(M)
             p_ratio = isentropic_properties["Static Pressure Ratio (p/p0)"]
