@@ -68,10 +68,7 @@ class TaylorMaccollSolver:
         den = Mn3**2*(2*self.gamma)/(self.gamma-1)-1
         Mn2 = np.sqrt(num/den)
 
-        return{
-            "Mn2" : Mn2,
-            "Mn3" : Mn3
-        }
+        return Mn2, Mn3
 
     def step_456(self, Mn2, tol=1e-5, max_iter=100):
         """
@@ -109,11 +106,7 @@ class TaylorMaccollSolver:
             Delta = Delta_improved
             iteration += 1
 
-        return {
-            "Delta": Delta,
-            "M2": self.M2,
-            "Iterations": iteration
-        }
+        return Delta, M2, iteration
 
     def Potentialmoccollfixer(self,Mn2, M2):
       """
@@ -130,10 +123,7 @@ class TaylorMaccollSolver:
       V_theta = -Mn2*np.sqrt(self.gamma*self.gasConst*self.Temp2)
       V_r = (self.M2**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
 
-      return{
-          "V_Theta" : V_theta,
-          "Vr" : V_r
-      }
+      return V_theta, V_r
 
     def calculate_Mach_from_components(self, V_r, V_theta):
         '''
