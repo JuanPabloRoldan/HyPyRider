@@ -147,6 +147,8 @@ class TaylorMaccollSolver:
 
         # Compute the inverse squared velocity magnitude term
         temp = (1 / (V_prime ** 2)) - 1
+        print(type(temp))  # Should be a float or int
+        print(temp)
 
         # Compute the Mach number (M) from the velocity magnitude
         M = np.sqrt((2 / temp) / (self.gamma - 1))
