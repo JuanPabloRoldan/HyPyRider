@@ -322,10 +322,11 @@ if __name__ == "__main__":
     theta_s = np.radians(30)  # Example shock angle
     theta_c = np.radians(theta_s)
     Mc = 3.57846955
+    M3 = 5
 
     Mn2, Mn3 = solver.step_23()
     M2, Delta, itterations = solver.step_456(Mn2)
-    V_r, V_theta = solver.Potentialmoccollfixer(Mn2, M2)
+    V_r, V_theta = solver.Potentialmoccollfixer(Mn2, M3)
 
     
     results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r, dV_r)
