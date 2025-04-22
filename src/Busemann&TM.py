@@ -83,7 +83,9 @@ class TaylorMaccollSolver:
             max_iter (int): Maximum iterations allowed.
 
         Returns:
-            dict: Contains converged delta and M2.
+            delta:
+            M2:
+            Iterations:
         """
         # Step 4
         Delta = np.radians(5)  # 5 degrees as an initial guess
