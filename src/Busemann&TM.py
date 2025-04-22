@@ -303,7 +303,11 @@ class TaylorMaccollSolver:
             # Perform RK4 step
             Vr, dVr = self.rk4_step(theta, Vr, dVr)
             M = self.calculate_Mach_from_components(Vr, dVr)
-            print(M)
+
+            ######DELETE THE NEXT 3 LINES
+            if np.isnan(M):
+                print("⚠️ Mach number is NaN at this step")
+                break
 
             isentropic_properties = isentropic_solver.isentropic_relations(M)
             p_ratio = isentropic_properties["Static Pressure Ratio (p/p0)"]
