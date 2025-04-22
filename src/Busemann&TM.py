@@ -121,7 +121,7 @@ class TaylorMaccollSolver:
           V r
       """  
       V_theta = -Mn2*np.sqrt(self.gamma*self.gasConst*self.Temp2)
-      V_r = (self.M2**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
+      V_r = (M2**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
 
       return V_theta, V_r
 
