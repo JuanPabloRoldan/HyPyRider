@@ -95,7 +95,7 @@ class TaylorMaccollSolver:
             # Step 5
             print(type(Mn2))  # Should be a float or int
             print(type(Beta))  # Should be a float or int
-            self.M2 = Mn2 / np.sin(Beta)
+            M2 = Mn2 / np.sin(Beta)
 
             # Step 6
             num = Mn2**2-1
