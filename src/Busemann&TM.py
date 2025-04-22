@@ -50,7 +50,7 @@ class TaylorMaccollSolver:
         self.speed_sound = self.gamma*self.gasConst*self.Temp2
 
 
-    def step23(self):
+    def step_23(self):
         """
         Performs steps 2 and 3 in the Busemann inlet procces
 
