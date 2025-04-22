@@ -92,11 +92,10 @@ class BusemannInlet:
         solver = tm.TaylorMaccollSolver(gamma=self.gamma)
         theta_c = np.radians(self.theta_s)  # cone angle ≈ shock angle
         V_theta, V_r = BusemannInlet.Potentialmoccollfixer(Mn2, M2)
-        #V_theta, V_r = solver.calculate_velocity_components(Mn2, Mn3)
         df = solver.tabulate_from_shock_to_cone(theta_s=self.theta_s, theta_c=theta_c, V_r=Vr0, dVr0=dVr0)
         return df
 
-    def Potentialmoccollfixer(self,Mn2, M2):  #####MAYBE DELETE LATER
+    def Potentialmoccollfixer(self,Mn2, M2):
         """
         I think fixes the taylor maccoll issue.
         TM is getting its own vr and Vtheta
