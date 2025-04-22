@@ -324,7 +324,7 @@ if __name__ == "__main__":
     Mc = 3.57846955
 
     Mn2, Mn3 = solver.step_23()
-    M2, Delta = solver.step_456(Mn2)
+    M2, Delta, itterations = solver.step_456(Mn2)
     V_r, V_theta = solver.Potentialmoccollfixer(Mn2, M2)
 
     
