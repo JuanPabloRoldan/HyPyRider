@@ -329,5 +329,5 @@ if __name__ == "__main__":
     V_r, V_theta = solver.Potentialmoccollfixer(Mn2, M3)
 
     
-    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r)
+    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r, dVr0 = 0)
     print(results_df.head())
