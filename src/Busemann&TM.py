@@ -124,7 +124,7 @@ class TaylorMaccollSolver:
       V_r = (M2**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
 
       return V_theta, V_r
-
+"""
     def calculate_Mach_from_components(self, V_r, V_theta):
         '''
         Calculates the Mach number from the radial and tangential velocity components.
@@ -155,6 +155,7 @@ class TaylorMaccollSolver:
 
         # Return the computed Mach number
         return M
+"""
 
     def taylor_maccoll_system(self, theta, Vr, dVr):
         '''
@@ -264,7 +265,7 @@ class TaylorMaccollSolver:
         # Return final values
         return theta, Vr, dVr
     
-    def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0):
+    def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0, M):
         '''
         Solves the Taylor-Maccoll equation and returns a DataFrame with results.
 
@@ -289,7 +290,7 @@ class TaylorMaccollSolver:
         theta = theta_c
         Vr = Vr0
         dVr = dVr0
-        M = self.calculate_Mach_from_components(Vr, dVr)
+    
 
         isentropic_properties = isentropic_solver.isentropic_relations(M)
         p_ratio = isentropic_properties["Static Pressure Ratio (p/p0)"]
@@ -336,5 +337,5 @@ if __name__ == "__main__":
     V_r, V_theta = solver.Potentialmoccollfixer(Mn2, M3)
 
     
-    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r, dVr0 = 1)
+    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r, dVr0 = 1, M2)
     print(results_df.head())
