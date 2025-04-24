@@ -124,7 +124,7 @@ class TaylorMaccollSolver:
       V_r = (M2**2 - Mn2**2)**0.5 * np.sqrt(self.gamma*self.gasConst*self.Temp2)
 
       return V_theta, V_r
-"""
+    """
     def calculate_Mach_from_components(self, V_r, V_theta):
         '''
         Calculates the Mach number from the radial and tangential velocity components.
@@ -155,7 +155,7 @@ class TaylorMaccollSolver:
 
         # Return the computed Mach number
         return M
-"""
+    """
 
     def taylor_maccoll_system(self, theta, Vr, dVr):
         '''
