@@ -36,7 +36,7 @@ class TaylorMaccollSolver:
 
         beta = np.radians(self.theta_s_deg)
         Mn3 = self.M3 * np.sin(beta)
-        num = Mn3**2 + self.gamma / (self.gamma - 1)
+        num = Mn3**2 + self.gamma / (self.gamma + 1)
         den = Mn3**2 * (2 * self.gamma / (self.gamma - 1)) - 1
         Mn2 = np.sqrt(num / den)
         return Mn2, Mn3
