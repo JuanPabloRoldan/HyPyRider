@@ -265,7 +265,7 @@ class TaylorMaccollSolver:
         # Return final values
         return theta, Vr, dVr
     
-    def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0, M):
+    def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, M, dVr0):
         '''
         Solves the Taylor-Maccoll equation and returns a DataFrame with results.
 
@@ -337,5 +337,5 @@ if __name__ == "__main__":
     V_r, V_theta = solver.Potentialmoccollfixer(Mn2, M3)
 
     
-    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r, dVr0 = 1, M2)
+    results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, V_r, M2, dVr0 = 1)
     print(results_df.head())
