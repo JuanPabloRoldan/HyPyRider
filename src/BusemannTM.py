@@ -17,7 +17,7 @@ class TaylorMaccollSolver:
         self.h = step_size  # Angular step size (radians)
         self.gas_const = 287  # Specific gas constant (J/kg-K)
         self.temp_static = 293  # Static temperature in Kelvin
-        self.theta_s_deg = 35.0  # Shock angle in degrees
+        self.theta_s_deg = 17.2  # Shock angle in degrees og 35
         self.M3 = 2.273  # Freestream Mach number
 
     def compute_post_shock_mach_components(self):
@@ -34,14 +34,14 @@ class TaylorMaccollSolver:
             Mn3 (float): Nomral component of M3
         """
 
-        beta = np.radians(self.theta_s_deg)
-        Mn3 = self.M3 * np.sin(beta)
+        theta = np.radians(self.theta_s_deg)
+        Mn3 = self.M3 * np.sin(theta)
         num = Mn3**2 + self.gamma / (self.gamma + 1)
         den = Mn3**2 * (2 * self.gamma / (self.gamma - 1)) - 1
         Mn2 = np.sqrt(num / den)
         return Mn2, Mn3
 
-    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=100):
+    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=1000):
         """
         Compute the shock deflection angle and postshock Mach number.
 
@@ -54,22 +54,30 @@ class TaylorMaccollSolver:
             Delta (float): Total deflection angle
             M2 (float): Mach number upstream of the shock
             Iteration (int) : iteration value when iteration complete
-        
         """
 
+        deltas = []
+
         Delta = np.radians(5)
-        beta = np.radians(self.theta_s_deg)
+        theta = np.radians(self.theta_s_deg)
         iteration = 0
         while iteration < max_iter:
-            Beta = beta + Delta
+            Beta = theta + Delta
             M2 = Mn2 / np.sin(Beta)
             num = Mn2**2 - 1
             den = Mn2**2 * (self.gamma + np.cos(2 * Beta) + 2)
             Delta_new = np.arctan(2 * (1 / np.tan(Beta)) * (num / den))
+            deltas.append([iteration, Delta_new - Delta])
             if abs((Delta_new - Delta) / Delta_new) < tol:
                 break
             Delta = Delta_new
             iteration += 1
+        print(iteration)
+        print(M2)
+
+        plt.figure(figsize=(8, 6))
+        plt.plot([row[0] for row in deltas], [row[1] for row in deltas], label="Delta Convergence")
+
         return Delta, M2, iteration
 
     def compute_initial_velocity_components(self, Mn2, M2):
@@ -224,8 +232,7 @@ if __name__ == "__main__":
 
     print(df.head())
     
-    file_path = 'data.csv'
-    df.to_csv(file_path, index=False)
+    df.to_csv('data.csv', index=False)
 
     # Integrate inlet shape using dr/dθ = V_θ / V_r
     theta_vals = df["Theta (radians)"].to_numpy()
