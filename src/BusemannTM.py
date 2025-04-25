@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from isentropic_relations_solver import IsentropicRelationsSolver
+from scipy.optimize import fsolve
 
 class TaylorMaccollSolver:
     def __init__(self, gamma=1.4, step_size=0.00005):
@@ -18,7 +19,8 @@ class TaylorMaccollSolver:
         self.gas_const = 287  # Specific gas constant (J/kg-K)
         self.temp_static = 293  # Static temperature in Kelvin
         self.theta_s_deg = 17.2  # Shock angle in degrees og 35
-        self.M3 = 2.273  # Freestream Mach number
+        self.M3 = 2.27  # Freestream Mach number
+
 
     def compute_post_shock_mach_components(self):
         """
@@ -36,12 +38,12 @@ class TaylorMaccollSolver:
 
         theta = np.radians(self.theta_s_deg)
         Mn3 = self.M3 * np.sin(theta)
-        num = Mn3**2 + self.gamma / (self.gamma + 1)
+        num = Mn3**2 + 2 / (self.gamma + 1)
         den = Mn3**2 * (2 * self.gamma / (self.gamma - 1)) - 1
         Mn2 = np.sqrt(num / den)
         return Mn2, Mn3
-
-    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=1000):
+    
+    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=10000):
         """
         Compute the shock deflection angle and postshock Mach number.
 
@@ -58,15 +60,16 @@ class TaylorMaccollSolver:
 
         deltas = []
 
-        Delta = np.radians(5)
+        Delta = np.radians(5) #inital geuss
         theta = np.radians(self.theta_s_deg)
         iteration = 0
         while iteration < max_iter:
-            Beta = theta + Delta
+            Beta = theta + Delta #Breifly set this to radians and it made mach -37.772
             M2 = Mn2 / np.sin(Beta)
             num = Mn2**2 - 1
-            den = Mn2**2 * (self.gamma + np.cos(2 * Beta) + 2)
+            den = (Mn2**2 * self.gamma + np.cos(2 * Beta)) * 2 #moved the 2 from + to * 
             Delta_new = np.arctan(2 * (1 / np.tan(Beta)) * (num / den))
+            print(Delta_new)
             deltas.append([iteration, Delta_new - Delta])
             if abs((Delta_new - Delta) / Delta_new) < tol:
                 break
@@ -78,7 +81,36 @@ class TaylorMaccollSolver:
         plt.figure(figsize=(8, 6))
         plt.plot([row[0] for row in deltas], [row[1] for row in deltas], label="Delta Convergence")
 
+        M2 = 3 #SETS M2 UNTIL THIS IS FIXED
+        print(M2)
         return Delta, M2, iteration
+
+    """
+    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=1000):
+
+        def theta_beta_mach_eq(Beta, M3, theta_deg, gamma):
+            theta = np.radians(theta_deg)
+            lhs = np.tan(theta)
+            rhs = 2 * (1 / np.tan(Beta)) * ((M3**2 * np.sin(Beta)**2 - 1) / 
+                (M3**2 * (gamma + np.cos(2 * Beta)) + 2))
+            return lhs - rhs
+        
+        theta = np.radians(self.theta_s_deg)
+        # Initial guess for Beta
+        Beta_guess = theta + np.radians(5)
+
+        Beta_solution = fsolve(theta_beta_mach_eq, Beta_guess, args=(self.M3, self.theta_s_deg, self.gamma))[0]
+        #M2 = Mn2 / np.sin(Beta_solution)
+        Delta = Beta_solution - theta  # Deflection angle
+
+        #ADDED THE FOLLOWING 2 Lines
+        Mn2_calculated = self.M3 * np.sin(Beta_solution)
+        M2 = Mn2_calculated / np.sin(Beta_solution)
+        print(Beta_solution)
+
+        print(M2)
+        return Delta, M2, 1
+    """
 
     def compute_initial_velocity_components(self, Mn2, M2):
         """
@@ -177,8 +209,9 @@ class TaylorMaccollSolver:
         dVr_next = dVr + (1 / 6) * (M1 + 2 * M2 + 2 * M3 + M4)
         return Vr_next, dVr_next
 
-    def solve_flow_field(self, theta_s, theta_c, Vr0, M_init, dVr0):
-        """
+    """
+    def solve_flow_field(self, theta_s, theta_c, Vr0, M2, dVr0): #replace M_init with M2 still neither are being used.
+        ""
         Integrate the Taylor-Maccoll equations from shock to cone surface.
 
         Parameters
@@ -186,13 +219,12 @@ class TaylorMaccollSolver:
             theta_s (float): shock angle
             theta_c (float): cone angle
             Vr0 (float): Vr0
-            M_init (): Mach initial? NOT ACTUALLY USED
             dVr0 (float): derivative of Vr0
 
         Returns
         ----------
             results (pd Dataframe): A pd Dataframe of theta, mach, Vr, Vtheta, P/P0, T/T0, rho/rho0    
-        """
+        ""
 
         isentropic_solver = IsentropicRelationsSolver(self.gamma)
         theta = theta_c
@@ -219,6 +251,61 @@ class TaylorMaccollSolver:
         return pd.DataFrame(results, columns=[
             "Theta (radians)", "Mach", "V_r", "V_theta", "P/P0", "T/T0", "rho/rho0"
         ])
+        """
+    
+    def solve_flow_field(self, theta_s, theta_c, Vr0, dVr0):
+        '''
+        Solves the Taylor-Maccoll equation and returns a DataFrame with results.
+
+        Parameters
+        ----------
+        theta_s : float
+            Shock angle (radians).
+        theta_c : float
+            Cone angle (radians).
+        Vr0 : float
+            Initial radial velocity.
+        dVr0 : float
+            Initial derivative of Vr.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame containing Theta (radians), V_r, and V_theta.
+        '''
+        isentropic_solver = IsentropicRelationsSolver(self.gamma)
+
+        theta = theta_c
+        Vr = Vr0
+        dVr = dVr0
+        M = self.compute_mach(Vr, dVr)
+
+        isentropic_properties = isentropic_solver.isentropic_relations(M)
+        p_ratio = isentropic_properties["Static Pressure Ratio (p/p0)"]
+        t_ratio = isentropic_properties["Static Temperature Ratio (T/T0)"]
+        rho_ratio = isentropic_properties["Static Density Ratio (rho/rho0)"]
+
+        # Lists to store results
+        results = [[theta, M, Vr, dVr, p_ratio, t_ratio, rho_ratio]]  # Log initial conditions
+
+        while abs(theta - theta_s) > 1e-3:                            # Continue until reach shock angle
+            # Perform RK4 step
+            Vr, dVr = self.rk4_step(theta, Vr, dVr)
+            M = self.compute_mach(Vr, dVr)
+
+            isentropic_properties = isentropic_solver.isentropic_relations(M)
+            p_ratio = isentropic_properties["Static Pressure Ratio (p/p0)"]
+            t_ratio = isentropic_properties["Static Temperature Ratio (T/T0)"]
+            rho_ratio = isentropic_properties["Static Density Ratio (rho/rho0)"]
+
+            theta += self.h
+
+            # Save current results
+            results.append([theta, M, Vr, dVr, p_ratio, t_ratio, rho_ratio])
+
+        # Create and return DataFrame
+        results_df = pd.DataFrame(results, columns=["Theta (radians)", "Mach", "V_r", "V_theta", "P/P0", "T/T0", "rho/rho0"])
+        return results_df
 
 if __name__ == "__main__":
     solver = TaylorMaccollSolver()
@@ -227,11 +314,10 @@ if __name__ == "__main__":
 
     Mn2, Mn3 = solver.compute_post_shock_mach_components()
     Delta, M2, _ = solver.compute_deflection_and_postshock_mach(Mn2)
-    V_r, V_theta = solver.compute_initial_velocity_components(Mn2, solver.M3)
-    df = solver.solve_flow_field(theta_s, theta_c, V_r, M2, dVr0=1)
+    V_r, V_theta = solver.compute_initial_velocity_components(Mn2, M2) #Was using M3 as input should be M2 as it is now
+    df = solver.solve_flow_field(theta_s, theta_c, V_r, dVr0=1)        #M2 was dropped from the 4th position.
 
     print(df.head())
-    
     df.to_csv('data.csv', index=False)
 
     # Integrate inlet shape using dr/dθ = V_θ / V_r
