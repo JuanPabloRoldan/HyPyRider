@@ -38,8 +38,8 @@ class TaylorMaccollSolver:
 
         theta = np.radians(self.theta_s_deg)
         Mn3 = self.M3 * np.sin(theta)
-        num = Mn3**2 + 2 / (self.gamma + 1)
-        den = Mn3**2 * (2 * self.gamma / (self.gamma - 1)) - 1
+        num = ((Mn3**2) + 2 )/ (self.gamma + 1)     #added extra parantacies to the equations
+        den = ((Mn3**2)* ((2 * self.gamma)/ (self.gamma - 1))) - 1
         Mn2 = np.sqrt(num / den)
         return Mn2, Mn3
     
@@ -66,8 +66,8 @@ class TaylorMaccollSolver:
         while iteration < max_iter:
             Beta = theta + Delta #Breifly set this to radians and it made mach -37.772
             M2 = Mn2 / np.sin(Beta)
-            num = Mn2**2 - 1
-            den = (Mn2**2 * self.gamma + np.cos(2 * Beta)) * 2 #moved the 2 from + to * 
+            num = (Mn2**2) - 1
+            den = ((M2**2)* (self.gamma + np.cos(2 * Beta))) * 2 #moved the 2 from + to * 
             Delta_new = np.arctan(2 * (1 / np.tan(Beta)) * (num / den))
             print(Delta_new)
             deltas.append([iteration, Delta_new - Delta])
@@ -81,36 +81,7 @@ class TaylorMaccollSolver:
         plt.figure(figsize=(8, 6))
         plt.plot([row[0] for row in deltas], [row[1] for row in deltas], label="Delta Convergence")
 
-        M2 = 3 #SETS M2 UNTIL THIS IS FIXED
-        print(M2)
         return Delta, M2, iteration
-
-    """
-    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=1000):
-
-        def theta_beta_mach_eq(Beta, M3, theta_deg, gamma):
-            theta = np.radians(theta_deg)
-            lhs = np.tan(theta)
-            rhs = 2 * (1 / np.tan(Beta)) * ((M3**2 * np.sin(Beta)**2 - 1) / 
-                (M3**2 * (gamma + np.cos(2 * Beta)) + 2))
-            return lhs - rhs
-        
-        theta = np.radians(self.theta_s_deg)
-        # Initial guess for Beta
-        Beta_guess = theta + np.radians(5)
-
-        Beta_solution = fsolve(theta_beta_mach_eq, Beta_guess, args=(self.M3, self.theta_s_deg, self.gamma))[0]
-        #M2 = Mn2 / np.sin(Beta_solution)
-        Delta = Beta_solution - theta  # Deflection angle
-
-        #ADDED THE FOLLOWING 2 Lines
-        Mn2_calculated = self.M3 * np.sin(Beta_solution)
-        M2 = Mn2_calculated / np.sin(Beta_solution)
-        print(Beta_solution)
-
-        print(M2)
-        return Delta, M2, 1
-    """
 
     def compute_initial_velocity_components(self, Mn2, M2):
         """
@@ -133,6 +104,7 @@ class TaylorMaccollSolver:
         V_theta = -Mn2 * a2
         V_r = np.sqrt(M2**2 - Mn2**2) * a2
         return V_r / a2, V_theta / a2
+        #return V_r , V_theta 
 
     def compute_mach(self, V_r, V_theta):
         """
@@ -148,26 +120,26 @@ class TaylorMaccollSolver:
             M (float): Local mach number from vector components.
         """
 
-        M = np.sqrt(V_r**2 + V_theta**2)
+        M = np.sqrt((V_r**2)+ V_theta**2) #Extra set of parentatheis
         return M
 
     def taylor_maccoll_rhs(self, theta, Vr, dVr):
         """
-        Compute local Mach number from normalized velocity components.
+        Defines the Taylor-Maccoll ODE system.
 
         Parameters
         ----------
-            theta (float): cone angle
-            Vr (float): Radial component of velocity
-            dVr (float): dertivative of Vr with respect to theta
-            
+        theta : float
+            Angle of the position vector from the cone vertex (radians).
+        Vr : float
+            Radial component of velocity (normalized).
+        dVr : float
+            First derivative of Vr with respect to theta.
+
         Returns
-        ----------
-            numpy.ndarray
-                A 1D array containing the first and second derivatives of `Vr`:
-                [dVr, ddVr], where:
-                    - dVr is the input derivative,
-                    - ddVr is the second derivative of `Vr` with respect to `theta`.    
+        -------
+        np.array
+            A 2-element array containing dVr and ddVr. 
         """
 
         B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
@@ -208,50 +180,6 @@ class TaylorMaccollSolver:
         Vr_next = Vr + (1 / 6) * (K1 + 2 * K2 + 2 * K3 + K4)
         dVr_next = dVr + (1 / 6) * (M1 + 2 * M2 + 2 * M3 + M4)
         return Vr_next, dVr_next
-
-    """
-    def solve_flow_field(self, theta_s, theta_c, Vr0, M2, dVr0): #replace M_init with M2 still neither are being used.
-        ""
-        Integrate the Taylor-Maccoll equations from shock to cone surface.
-
-        Parameters
-        ----------
-            theta_s (float): shock angle
-            theta_c (float): cone angle
-            Vr0 (float): Vr0
-            dVr0 (float): derivative of Vr0
-
-        Returns
-        ----------
-            results (pd Dataframe): A pd Dataframe of theta, mach, Vr, Vtheta, P/P0, T/T0, rho/rho0    
-        ""
-
-        isentropic_solver = IsentropicRelationsSolver(self.gamma)
-        theta = theta_c
-        Vr = Vr0
-        dVr = dVr0
-        results = []
-
-        while abs(theta - theta_s) > 1e-3:
-            try:
-                M = self.compute_mach(Vr, dVr)
-                props = isentropic_solver.isentropic_relations(M)
-                if isinstance(props, str):
-                    break
-                p_ratio = props["Static Pressure Ratio (p/p0)"]
-                t_ratio = props["Static Temperature Ratio (T/T0)"]
-                rho_ratio = props["Static Density Ratio (rho/rho0)"]
-            except Exception:
-                break
-
-            results.append([theta, M, Vr, dVr, p_ratio, t_ratio, rho_ratio])
-            Vr, dVr = self.rk4_step(theta, Vr, dVr)
-            theta += self.h
-
-        return pd.DataFrame(results, columns=[
-            "Theta (radians)", "Mach", "V_r", "V_theta", "P/P0", "T/T0", "rho/rho0"
-        ])
-        """
     
     def solve_flow_field(self, theta_s, theta_c, Vr0, dVr0):
         '''
