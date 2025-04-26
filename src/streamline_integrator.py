@@ -1,216 +1,135 @@
 import os
-import random
 import numpy as np
 import pandas as pd
 from conical_flow_analyzer import ConicalFlowAnalyzer
 import process_LE_points
+from flow_interpolator import bilinear_interpolate_moc
+from axi_sym_MoC_solver import MoC_Skeleton
+from moc_to_structured_grid import extract_fields_from_moc, build_logical_coords, build_inverse_coordinate_map
+from scipy.interpolate import NearestNDInterpolator
 
 class StreamlineIntegrator:
-    def __init__(self, gamma, M1, theta_s):
+    def __init__(self, gamma, M1, theta_s, surface="compression"):
         """
         Initializes the streamline integrator.
-        This includes creating an instance of the conical flow solver,
-        as well as saving a data frame of useful solutions from the conical shock
-        solutions from theta = [shock angle, cone angle].
-
-        Parameters:
-            gamma (float): Specific heat ratio for the fluid.
-            M1 (float): Freestream Mach number upstream of the shock.
-            theta_s (float): Shock wave angle in radians.
         """
         self.gamma = gamma
         self.M1 = M1
         self.theta_s = theta_s
-        self.streamline_data = [] # store streamline points with ID
+        self.surface = surface
+        self.streamline_data = []  # store (x, r, z, id, order)
 
-        # Create an instance of ConicalFlowAnalyzer
-        self.conical_analyzer = ConicalFlowAnalyzer(M1, gamma)
-        self.theta_c, _, _ = self.conical_analyzer.solve_taylor_maccoll(self.theta_s)
+        if surface == "expansion":
+            # set up MOC mesh and interpolation
+            T = 231.64
+            Rgas = 287
+            a_inf = np.sqrt(gamma * Rgas * T)
+            wall_params = {"x1": 3.5010548, "x2": 9.39262, "r1": 3.5507, "r2": 2.5}
+            moc = MoC_Skeleton(M1, a_inf, gamma, wall_params)
+            moc_mesh = moc.MoC_Mesher()
+            x_vals, r_vals, u_field, v_field = extract_fields_from_moc(moc_mesh)
 
-        # Tabulate post-shock flow properties from shock angle to the cone angle
-        self.TM_tabulation = self.conical_analyzer.tabulate_tm_shock_to_cone(theta_s)
+            # logical <-> physical mapping
+            eta_grid, xi_grid, eta_vals, xi_vals = build_logical_coords(moc_mesh)
+            eta_lin, xi_lin = build_inverse_coordinate_map(x_vals, r_vals, eta_vals, xi_vals)
+            mask = ~np.isnan(x_vals) & ~np.isnan(r_vals)
+            pts_map = np.stack((x_vals[mask], r_vals[mask]), axis=-1)
+            eta_near = NearestNDInterpolator(pts_map, eta_vals[mask])
+            xi_near = NearestNDInterpolator(pts_map, xi_vals[mask])
+            self.eta_interp = lambda x, r: float(eta_lin(x, r)) if not np.isnan(eta_lin(x, r)) else float(eta_near(x, r))
+            self.xi_interp = lambda x, r: float(xi_lin(x, r)) if not np.isnan(xi_lin(x, r)) else float(xi_near(x, r))
 
-    def trace_streamline(self, x, y, z, streamline_id):
+            # velocity fallback
+            pts_vel = pts_map
+            self.u_near = NearestNDInterpolator(pts_vel, u_field[mask])
+            self.v_near = NearestNDInterpolator(pts_vel, v_field[mask])
+            self.flow_fields = {"u_field": u_field, "v_field": v_field}
+
+        if surface == "compression":
+            self.conical_analyzer = ConicalFlowAnalyzer(M1, gamma)
+            self.theta_c, _, _ = self.conical_analyzer.solve_taylor_maccoll(theta_s)
+            self.TM_tabulation = self.conical_analyzer.tabulate_tm_shock_to_cone(theta_s)
+
+    def get_flow(self, x, r, theta=None):
         """
-        Traces a streamline starting from the given leading-edge (LE) normalized coordinates.
-
-        Parameters:
-            x (float): Normalized x-coordinate of the LE point.
-            y (float): Normalized y-coordinate of the LE point.
-            z (float): Normalized z-coordinate of the LE point.
-            streamline_id (int): Unique ID for this streamline.
-
-        Returns:
-            None (stores streamline points in self.streamline_data)
+        Fetch axial (u) and radial (v) velocities at physical (x,r).
         """
-        theta = self.theta_s
-        streamline_points = []
-        order = 0 # tracks # of points in a streamline
+        if self.surface == "compression":
+            u = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
+            v = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
+            return u, v
 
-        # **Store the first point explicitly (the leading edge point)**
-        streamline_points.append([x * self.ref_length, 
-                                y * self.ref_length, 
-                                z * self.ref_length, streamline_id, order])
-        order += 1  # Increment order before stepping forward
-        
-        alpha = np.arctan(abs(z / y))
+        # expansion surface lookup
+        eta = self.eta_interp(x, r)
+        xi = self.xi_interp(x, r)
+        uv = bilinear_interpolate_moc(eta, xi, self.flow_fields)
+        if uv is None or np.isnan(uv['u']) or np.isnan(uv['v']):
+            u = self.u_near(x, r)
+            v = self.v_near(x, r)
+        else:
+            u, v = uv['u'], uv['v']
+        return u, v
 
-        while x < 1:
-            
-            r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-            # alpha = np.arctan(abs(z / y))
-            dt = 0.02
+    def trace_streamline(self, x_le, y_le, z_le, streamline_id):
+        """
+        March a single streamline in 3D from the expansion leading edge.
+        x_le,y_le,z_le are normalized coordinates of the LE.
+        """
+        # convert to physical
+        x = x_le * self.ref_length
+        # initial radial angle and distance
+        phi0 = np.arctan2(z_le * self.ref_length, y_le * self.ref_length)
+        r = np.hypot(y_le * self.ref_length, z_le * self.ref_length)
+        dt = 1e-4
+        points = []
 
-            # Interpolate V_r and V_theta from tabulated data
-            V_r = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_r'])
-            V_theta = np.interp(theta, self.TM_tabulation['Theta (radians)'], self.TM_tabulation['V_theta'])
+        # starting point in (x,y,z)
+        y = r * np.cos(phi0)
+        z = r * np.sin(phi0)
+        points.append([x, y, z, streamline_id, 0])
 
-            # Update theta and r
-            d_theta = V_theta * dt / r
-            theta += d_theta
-            r += (V_r * dt)
-            w = r * np.sin(theta)
-
-            # Update coordinates
-            x = r * np.cos(theta)
-            y = -w * np.cos(alpha)
-            z = w * np.sin(alpha)
-
-            # Store points with streamline ID and order
-            streamline_points.append([x * self.ref_length, 
-                                      y * self.ref_length, 
-                                      z * self.ref_length, streamline_id, order])
-            
-            order += 1
-
-            if np.isclose(theta, self.theta_c, rtol=0.01):
+        # march until end
+        for order in range(1, 50000):
+            u, v = self.get_flow(x, r)
+            if u is None or np.isnan(u):
+                print(f"[Streamline {streamline_id}] interp failed @ x={x:.6f}, r={r:.6f}")
+                break
+            x += u * dt
+            r += v * dt
+            y = r * np.cos(phi0)
+            z = r * np.sin(phi0)
+            points.append([x, y, z, streamline_id, order])
+            if x >= self.ref_length:
                 break
 
-        # Set last point x-coordinate to ref_length
-        streamline_points[-1][0] = self.ref_length
-
-        # Append streamline points to global data
-        self.streamline_data.extend(streamline_points)
+        self.streamline_data.extend(points)
 
     def create_lower_surface(self):
         """
-        Generates the lower surface by tracing streamlines from the leading-edge (LE) points.
-
-        The function normalizes the LE points, traces each streamline, and prints the 
-        trajectory to the console.
-
-        Parameters:
-            None
-
-        Returns:
-            None
+        Trace streamlines from each leading-edge point.
         """
-
-        # Find the maximum x-coordinate to normalize the lengths
+        self.streamline_data = []
         self.ref_length = self.LE_points['X'].max()
-
-        # Iterate over all LE points
-        for index, row in self.LE_points.iterrows():
-
-            # Grab points and normalize lengths
-            x, y, z = row['X'], row['Y'], row['Z']
-            x /= self.ref_length
-            y /= self.ref_length
-            z /= self.ref_length
-
-            # Trace the streamline for the current LE point
-            self.trace_streamline(x, y, z, streamline_id=index)
+        for idx, row in self.LE_points.iterrows():
+            x_le = row['X'] / self.ref_length
+            y_le = row['Y'] / self.ref_length
+            z_le = row['Z'] / self.ref_length
+            self.trace_streamline(x_le, y_le, z_le, idx)
 
     def export_streamlines_dat(self, filename):
         """
-        Exports the streamlines to a .dat file in a column format (x y z),
-        with tab delimiters and the number of points at the top of each segment.
-
-        Parameters:
-            filename (str): Name of the output .dat file.
-
-        Returns:
-            None
+        Save all traced streamlines to a .dat file.
         """
-        output_dir = "src/outputs"
-        os.makedirs(output_dir, exist_ok=True)
-        filepath = os.path.join(output_dir, filename)
-
-        with open(filepath, "w") as f:
-            for streamline_id in set(point[3] for point in self.streamline_data):
-                # Filter out points that exceed ref_length
-                streamline = [p for p in self.streamline_data if p[3] == streamline_id]
-                
-                if not streamline or len(streamline) == 1:
-                    continue
-                
-                # Write the number of points in the streamline
-                f.write(f"{len(streamline)}\n")
-                
-                # Write the coordinates with streamline_id and order
-                for x, y, z, s_id, order in streamline:
-                    f.write(f"{x}\t{y}\t{z}\n")
-
-        print(f"Streamline segment data saved to {filename}")
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, 'w') as f:
+            for sid in sorted({p[3] for p in self.streamline_data}):
+                seg = [p for p in self.streamline_data if p[3] == sid]
+                f.write(f"{len(seg)}\n")
+                for x, y, z, _, _ in seg:
+                    f.write(f"{x}\t{y-4.55}\t{z}\n")
 
     def close_streamline_segments(self, filename):
         """
-        Closes the segments by adding additional segments connecting the first points 
-        and last points of adjacent streamlines.
-
-        Parameters:
-            filename (str): Name of the output .dat file.
-
-        Returns:
-            None
+        Optionally link adjacent streamline segments.
         """
-        output_dir = "src/outputs"
-        filepath = os.path.join(output_dir, filename)
-
-        # Get sorted unique streamline IDs
-        streamline_ids = sorted(set(point[3] for point in self.streamline_data))
-
-        # Extract first and last points of each streamline
-        first_points = []
-        last_points = []
-        for streamline_id in streamline_ids:
-            streamline = [p for p in self.streamline_data if p[3] == streamline_id]
-            if streamline:
-                first_points.append(streamline[0])  # First point of the streamline
-                last_points.append(streamline[-1])  # Last point of the streamline
-
-        # Append new segments to the file
-        with open(filepath, "a") as f:
-
-            # Connect first points of adjacent streamlines
-            for i in range(len(first_points) - 1):
-                f.write(f"2\n")
-                f.write(f"{first_points[i][0]}\t{first_points[i][1]}\t{first_points[i][2]}\n")
-                f.write(f"{first_points[i + 1][0]}\t{first_points[i + 1][1]}\t{first_points[i + 1][2]}\n")
-
-            # Connect last points of adjacent streamlines
-            for i in range(len(last_points) - 1):
-                f.write(f"2\n")
-                f.write(f"{last_points[i][0]}\t{last_points[i][1]}\t{last_points[i][2]}\n")
-                f.write(f"{last_points[i + 1][0]}\t{last_points[i + 1][1]}\t{last_points[i + 1][2]}\n")
-
-        print(f"Closing segments appended to {filename}") 
-
-# Example Usage
-if __name__ == "__main__":
-    # Initialize the streamline integrator with specific parameters
-    integrator = StreamlineIntegrator(gamma=1.2, M1=10.0, theta_s=np.radians(20))
-
-    # Extract leading-edge points from a file
-    file_path = 'src/inputs/LeadingEdgeData_LeftSide.nmb'
-    integrator.LE_points = process_LE_points.extract_points_from_file(file_path)
-
-    # Create the lower surface by tracing streamlines
-    integrator.create_lower_surface()
-
-    # Export streamline data
-    dat_filename = "streamlines.dat"
-    integrator.export_streamlines_dat(dat_filename)
-
-    # Close the streamline segments
-    integrator.close_streamline_segments(dat_filename)
+        pass

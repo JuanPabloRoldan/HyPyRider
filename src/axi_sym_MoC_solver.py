@@ -14,7 +14,7 @@ class MoC_Skeleton:
 
         self.moc_solver = AxisymMoC(self.q_max, self.gamma, self.wall_params)
 
-    def MoC_Mesher(self, log_file="outputs/nr_debug_log.txt"):
+    def MoC_Mesher(self, log_file="src/outputs/nr_debug_log.txt"):
         i_max = 50
         delta_s = 0.1
         success = True
@@ -23,7 +23,6 @@ class MoC_Skeleton:
         x0  = self.wall_params["x1"]
         r0 = self.wall_params["r1"]
         init_point = Point(x0, r0, 0, self.M_inf, self.q_inf)
-        print(init_point)
         moc_mesh[0][0] = init_point
 
         with open(log_file, "a") as log:
@@ -36,7 +35,6 @@ class MoC_Skeleton:
             r_i = r0 + i * delta_s * np.sin(mu)
 
             moc_mesh[i][0] = Point(x_i, r_i, 0.0, self.M_inf, self.q_inf)
-            print(moc_mesh[i][0])
             with open(log_file, "a") as log:
                 log.write(f"Point[{i}][0]: {moc_mesh[i][0]}\n")
 
@@ -48,14 +46,12 @@ class MoC_Skeleton:
                 if PC is None:
                     return moc_mesh
                 moc_mesh[i][j] = PC
-                print(moc_mesh[i][j])
 
             # for a point, C, at the wall
             PB = moc_mesh[i][i - 1]
             PC = self.moc_solver.solve_wall_point(PB)
             moc_mesh[i][i] = PC
-            print(moc_mesh[i][i])
-            if PC is None:
+            if PC is None or PC.x >= self.wall_params['x2']:
                 return moc_mesh
 
         return moc_mesh

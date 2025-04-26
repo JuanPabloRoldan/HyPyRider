@@ -3,8 +3,8 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator
 
 def compute_metric_values(eta_grid, xi_grid, x_vals, y_vals, u_field, v_field):
-    deta = eta_grid[1] - eta_grid[0]
-    dxi = xi_grid[1] - xi_grid[0]
+    deta = 1
+    dxi = 1
 
     dx_deta = np.gradient(x_vals, deta, axis=0)
     dx_dxi = np.gradient(x_vals, dxi, axis=1)

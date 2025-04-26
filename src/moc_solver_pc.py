@@ -127,7 +127,6 @@ class AxisymMoC:
         
         det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
         if det < 0:
-            print('neg')
             return None
         z_c_prime = (2 * b * z1 + a + np.sqrt(det)) / (2 * b)
 
