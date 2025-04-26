@@ -19,7 +19,7 @@ class TaylorMaccollSolver:
         self.gas_const = 287  # Specific gas constant (J/kg-K)
         self.temp_static = 293  # Static temperature in Kelvin
         self.theta_s_deg = 17.2  # Shock angle in degrees og 35     22->37, 77->103  diverge, anthing < 11 breaks
-        self.M3 = 2.27  # Freestream Mach number
+        self.M3 = 2.27  # Freestream Mach number Mach 2 should be 3.2 from isentropics.
 
 
     def compute_post_shock_mach_components(self):
