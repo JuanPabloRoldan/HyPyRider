@@ -18,7 +18,7 @@ class TaylorMaccollSolver:
         self.h = step_size  # Angular step size (radians)
         self.gas_const = 287  # Specific gas constant (J/kg-K)
         self.temp_static = 293  # Static temperature in Kelvin
-        self.theta_s_deg = 17.2  # Shock angle in degrees og 35
+        self.theta_s_deg = 17.2  # Shock angle in degrees og 35     22->37, 77->103  diverge, anthing < 11 breaks
         self.M3 = 2.27  # Freestream Mach number
 
 
@@ -43,7 +43,7 @@ class TaylorMaccollSolver:
         Mn2 = np.sqrt(num / den)
         return Mn2, Mn3
     
-    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=10000):
+    def compute_deflection_and_postshock_mach(self, Mn2, tol=1e-5, max_iter=1000):
         """
         Compute the shock deflection angle and postshock Mach number.
 
@@ -64,23 +64,26 @@ class TaylorMaccollSolver:
         theta = np.radians(self.theta_s_deg)
         iteration = 0
         while iteration < max_iter:
-            Beta = theta + Delta #Breifly set this to radians and it made mach -37.772
+            Beta = theta + Delta
             M2 = Mn2 / np.sin(Beta)
             num = (Mn2**2) - 1
-            den = ((M2**2)* (self.gamma + np.cos(2 * Beta))) * 2 #moved the 2 from + to * 
+            den = ((M2**2)* (self.gamma + np.cos(2 * Beta))) * 2
             Delta_new = np.arctan(2 * (1 / np.tan(Beta)) * (num / den))
-            print(Delta_new)
             deltas.append([iteration, Delta_new - Delta])
             if abs((Delta_new - Delta) / Delta_new) < tol:
                 break
             Delta = Delta_new
             iteration += 1
+        print(Delta)
         print(iteration)
+        print(type(M2))
         print(M2)
 
         plt.figure(figsize=(8, 6))
         plt.plot([row[0] for row in deltas], [row[1] for row in deltas], label="Delta Convergence")
 
+        #M2 = np.float64(3)
+        #print(type(M2))
         return Delta, M2, iteration
 
     def compute_initial_velocity_components(self, Mn2, M2):
@@ -104,7 +107,6 @@ class TaylorMaccollSolver:
         V_theta = -Mn2 * a2
         V_r = np.sqrt(M2**2 - Mn2**2) * a2
         return V_r / a2, V_theta / a2
-        #return V_r , V_theta 
 
     def compute_mach(self, V_r, V_theta):
         """
