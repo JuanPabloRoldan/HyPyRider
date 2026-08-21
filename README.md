@@ -2,17 +2,14 @@
 
 ## Description
 
-HyPyRider (**Hy**personic **Py**thon-based wave**Rider** design tool) is a repository for designing and analyzing a waverider through multiple sub-projects, including:
+HyPyRider (**Hy**personic **Py**thon-based wave**Rider** design tool) is a Python toolkit for analyzing hypersonic conical flow and building axisymmetric waverider geometry from it. What's currently implemented under `src/` (see [Project Structure](#project-structure) below for the specific module behind each item):
 
-- **Conical Flow Analyzer**: Solves conical flow problems using oblique shock and Taylor-Maccoll solvers.
-- **Busemann Inlet Design**: Designs optimal inlet geometry for supersonic flow.
-- **Compression/Expansion Surfaces**: Analyzes flow interactions with compression and expansion surfaces.
-- **Turbo Ramjet Cycle Analysis**: Simulates and evaluates turbo ramjet engine cycles.
-- **Axisymmetric Method of Characteristics Analyzer**: Solves axisymmetric flow problems using the method of characteristics.
-- **Hypersonic Waverider Viscous Corrections**: Incorporates viscous effects into waverider designs.
-- **Hypersonic Waverider Expansion Surface Design**: Designs expansion surfaces for hypersonic flows.
+- **Conical flow analysis**: oblique shock and Taylor-Maccoll solvers, chained together end-to-end, plus isentropic flow relations.
+- **Axisymmetric Method of Characteristics (MoC) solver**: a predictor-corrector point solver and a full characteristic-mesh builder, following Bowcutt's 1986 dissertation.
+- **Lower (compression) surface analysis**: traces streamlines through the conical flow field to build waverider lower-surface geometry, then computes per-cell pressure/lift/drag coefficients (both exact, from the Taylor-Maccoll solution, and Newtonian) with VTK export for visualization.
+- **Supporting utilities**: atmospheric property and dynamic-pressure mapping, leading-edge geometry file parsing, Mach cone vertex location, and a general grid-metric/characteristic-line integrator.
 
-Of these, the **Conical Flow Analyzer**, **Axisymmetric MoC Analyzer**, and **Compression/Expansion Surfaces** sub-projects currently have working implementations under `src/` (see [Project Structure](#project-structure) below). The Busemann Inlet Design, Turbo Ramjet Cycle Analysis, and Viscous Corrections sub-projects are planned but not yet started.
+Upper-surface (expansion) analysis and inlet design are not yet part of `main` -- some of that work exists on other, unmerged branches.
 
 This guide provides clear instructions for setting up the project, making changes, and collaborating using Git and VS Code.
 
