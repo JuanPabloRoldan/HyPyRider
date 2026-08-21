@@ -41,8 +41,11 @@ class ConicalFlowAnalyzer:
         # Step 2: Calculate normalized velocity components
         V_prime, V_r, V_theta = self.tm_solver.calculate_velocity_components(M2, theta_s, theta_w)
 
-        # Step 3: Use TaylorMaccollSolver to find the cone angle and iterate
-        theta_c, V_r, V_theta = self.tm_solver.solve(theta_w, V_r, V_theta)
+        # Step 3: Use TaylorMaccollSolver to find the cone angle and iterate.
+        # solve() integrates from the shock angle (theta_s) toward the cone
+        # axis -- it must NOT be passed theta_w (the flow deflection angle),
+        # which is a different angle entirely.
+        theta_c, V_r, V_theta = self.tm_solver.solve(theta_s, V_r, V_theta)
 
         return theta_c, V_r, V_theta
 

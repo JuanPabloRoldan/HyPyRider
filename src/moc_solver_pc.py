@@ -106,7 +106,7 @@ class AxisymMoC:
         theta_c_prime = (
             theta_a
             + (1 / (q_a * np.tan(mu_a))) * (q_c_prime - q_a)
-            - (np.sin(mu_a) * np.sin(theta_a) / (r_a * np.cos(theta_a + mu_b))) * (z_c_prime - z_a)
+            - (np.sin(mu_a) * np.sin(theta_a) / (r_a * np.cos(theta_a + mu_a))) * (z_c_prime - z_a)
         )
 
         # Equation 2.27
@@ -255,6 +255,14 @@ class AxisymMoC:
             b = (r2 - r1) / (z2 - z1) ** 2
             c = b * z1 * z1 + a * z_b - r_b + r1
             det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
+            if det < 0:
+                # Same failure mode as the predictor step above, but here
+                # it's the *corrected* slope pushing the intersection out
+                # of the wall's real-solution domain. Fail the same way
+                # rather than letting sqrt() raise on a negative value.
+                print(f"solve_wall_point: no real intersection (det={det:.4g}) "
+                      f"during corrector iteration")
+                return None
             z_c_new = (2 * b * z1 + a + np.sqrt(det)) / (2 * b)
 
             # Equation 2.36
