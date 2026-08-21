@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from src.moc_solver_pc import AxisymMoC
 from src.point import Point
 
@@ -48,8 +49,8 @@ def test_solve_wall_point_succeeds_when_intersection_exists(solver):
     extrapolated parabola here, it just isn't guaranteed to in general
     (see the next test).
     """
-    PB = Point(x=10.084175290859454, r=2.3015659141074742, theta=-0.3524386403089323,
-               M=9.437775698916417, q=2057.118908975743)
+    PB = Point(x=10.083353806578721, r=2.3018799591411687, theta=-0.3524007055176659,
+               M=9.437497666282209, q=2057.1127917634576)
 
     PC = solver.solve_wall_point(PB)
 
@@ -70,8 +71,8 @@ def test_solve_wall_point_returns_none_past_wall_domain(solver, capsys):
     that the failure is now reported with a specific reason instead of a
     bare "neg".
     """
-    PB = Point(x=11.274183599427833, r=1.806742556073436, theta=-0.4059936956119819,
-               M=9.779187079764256, q=2064.278696921383)
+    PB = Point(x=11.274089564764987, r=1.806896382021175, theta=-0.4059541829010448,
+               M=9.778682440734498, q=2064.2686118427255)
 
     PC = solver.solve_wall_point(PB)
 

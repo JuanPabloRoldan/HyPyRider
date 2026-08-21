@@ -16,8 +16,10 @@ Nomenclature:
 ==================================================
 '''
 
-from point import Point
 import numpy as np
+
+from point import Point
+
 
 class AxisymMoC:
     '''Predictor-corrector solver for one step of the axisymmetric MoC mesh:
@@ -124,7 +126,7 @@ class AxisymMoC:
             r_c_new = drdz_a * (z_c_new - z_a) + r_a
 
             C1 = 0.5 * ((1 / (np.tan(mu_c_prime) * q_c_prime)) + (1 / (np.tan(mu_a) * q_a)))
-            
+
             C2_a = np.sin(mu_a) * np.sin(theta_a) / (r_a * np.cos(theta_a + mu_a))
             C2_b = np.sin(mu_c_prime) * np.sin(theta_c_prime) / (r_c_prime * np.cos(theta_c_prime + mu_c_prime))
             C2 = 0.5 * (C2_a + C2_b) * (z_c_new - z_a)
@@ -140,15 +142,16 @@ class AxisymMoC:
 
             # Equation 2.27
             M_c_new = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_new) ** 2) - 1)))
-            
+
             # Equation 2.26
             mu_c_new = np.arcsin(1 / M_c_new)
 
             if abs(q_c_new - q_c_prime) / q_c_prime < tol:
-                
+
                 break
 
-            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime = z_c_new, r_c_new, theta_c_new, M_c_new, q_c_new
+            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, mu_c_prime, q_c_prime = \
+                z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new, q_c_new
 
         return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
 
@@ -196,7 +199,7 @@ class AxisymMoC:
         a = drdz_b
         b = (r2 - r1) / ((z2 - z1) ** 2)
         c = b * (z1 * z1) + (a * z_b) - r_b +r1
-        
+
         det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
         if det < 0:
             # The straight-line predictor from PB has no real intersection
@@ -271,10 +274,11 @@ class AxisymMoC:
             mu_c_new = np.arcsin(1 / M_c_new)
 
             if abs(q_c_new - q_c_prime) / q_c_prime < tol:
-            
+
                 break
 
-            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, mu_c_prime, q_c_prime = z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new, q_c_new
+            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, mu_c_prime, q_c_prime = \
+                z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new, q_c_new
 
         return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
 
