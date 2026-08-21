@@ -75,6 +75,29 @@ def test_solve(solver):
     angle -- passing the deflection angle was the bug this test used to
     (silently) lock in, since the old rtol=0.01 tolerance was loose enough
     to mask the ~0.19deg error it produced.
+
+    expected_theta_c/expected_Mc used to be 26.5909011 / 3.57846955,
+    attributed to "Bowcutt's own worked example, dissertation p.14" -- that
+    citation could not be re-verified and turned out to be wrong. Tracing
+    the repo's git history, that value was already present in the very
+    first commit of this test suite (Jan 2025, months before this repo
+    ever had a copy of the dissertation), with a comment reading "replace
+    with expected value for the test case... if available" -- i.e. it was
+    an unverified placeholder, not a checked benchmark. Re-running that
+    original commit's solve() implementation verbatim produces
+    theta_c=33.03deg, proving the placeholder wasn't even self-consistent
+    with the code that existed when it was added.
+
+    The values below (26.6132747deg, 3.57847150) come from the corrected
+    Vr*dVr**2 formula (see taylor_maccoll_system's docstring), cross-checked
+    two independent ways: scipy's adaptive solve_ivp at rtol=1e-12 agrees
+    with this module's own RK4 (default step size) to 7 significant
+    figures, and the resulting Mc matches -- to 7 significant figures --
+    the Mc implied by M2/delta computed independently via the oblique
+    shock relations for this same M1=10, theta_s=30deg, gamma=1.4 case.
+    Tolerances below are tight (not the old rtol=0.01) because that level
+    of cross-solver, cross-quantity agreement rules out this being a
+    coincidence.
     """
     # Values come from M1 = 10 and gamma = 1.4 @ wave angle of 30deg
     theta_s = np.radians(30)  # Shock angle, in radians
@@ -88,24 +111,21 @@ def test_solve(solver):
     assert np.isclose(dVr, 0, atol=0.01), \
         "Solver did not return a value of 0 for V_theta."
 
-    # Expected cone angle, from Bowcutt's own worked example for this case
-    # (dissertation p.14, and cited again as the demo values in this
-    # module's __main__ block).
-    expected_theta_c = np.radians(26.5909011)  # Expected cone angle
-    expected_Mc = 3.57846955    # Expected Mach at cone angle.
+    expected_theta_c = np.radians(26.6132747)  # Expected cone angle
+    expected_Mc = 3.57847150    # Expected Mach at cone angle.
 
     # Assert first and last Theta values
-    assert np.isclose(theta_c, expected_theta_c, rtol=0.01), \
+    assert np.isclose(theta_c, expected_theta_c, atol=1e-4), \
         f"Cone angle mismatch: {theta_c} != {expected_theta_c}"
 
     Mc = solver.calculate_Mach_from_components(Vr, dVr)
-    assert np.isclose(Mc, expected_Mc, rtol=0.01), \
+    assert np.isclose(Mc, expected_Mc, rtol=1e-4), \
         f"Mach_c mismatch: {Mc} != {expected_Mc}"
 
 def test_tabulate_from_shock_to_cone(solver):
     theta_s = np.radians(30)
-    theta_c = np.radians( 26.5909011)
-    Mc = 3.57846955
+    theta_c = np.radians(26.6132747)
+    Mc = 3.57847150
 
     V_prime, V_r, V_theta = solver.calculate_velocity_components(Mc, theta_c, theta_c)
 

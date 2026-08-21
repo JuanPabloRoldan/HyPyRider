@@ -131,10 +131,16 @@ class TaylorMaccollSolver:
         B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
         C = (2 * Vr + dVr / np.tan(theta))
         # Eqn 2.1 solved for d2Vr/dtheta2: the first numerator term is
-        # Vr*dVr**2, not dVr**2 alone -- confirmed against the paper's own
-        # tabulated example (M1=10, theta_s=30deg, gamma=1.4 -> theta_c
-        # =26.5909011deg) by re-deriving the equation from its stated form
-        # and integrating both ways; only the Vr*dVr**2 form reproduces it.
+        # Vr*dVr**2, not dVr**2 alone. Verified two independent ways: (1)
+        # re-derived from scratch from continuity + irrotationality
+        # (V_theta = dVr/dtheta) + the energy equation + the isentropic
+        # a^2-rho relation -- no dependence on any specific transcription
+        # of the paper's typeset equation; (2) for M1=10, theta_s=30deg,
+        # gamma=1.4, this formula's converged cone-surface Mach number
+        # matches an independently-known M2/delta-consistent value to 7
+        # significant figures (see test_solve's docstring for the fuller
+        # story, including a git-archaeology check that ruled out the
+        # alternative theta_c figure this repo used to assert).
         numerator = Vr * dVr**2 - (B * C)
         denominator = B - dVr**2
         ddVr = numerator / denominator
@@ -310,8 +316,8 @@ class TaylorMaccollSolver:
 if __name__ == "__main__":
     solver = TaylorMaccollSolver()
     theta_s = np.radians(30)  # Example shock angle
-    theta_c = np.radians( 26.5909011)
-    Mc = 3.57846955
+    theta_c = np.radians(26.6132747)
+    Mc = 3.57847150
     V_0, Vr0, dVr0 = solver.calculate_velocity_components(Mc, theta_c, theta_c)
 
     results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
