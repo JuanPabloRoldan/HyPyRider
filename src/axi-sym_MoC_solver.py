@@ -1,10 +1,29 @@
+import os
 from point import Point
 from moc_solver_pc import AxisymMoC
 import numpy as np
 import matplotlib.pyplot as plt
 
 class MoC_Skeleton:
+    '''Builds a full axisymmetric MoC characteristic mesh, marching a grid of
+    interior and wall points downstream from an initial point using
+    AxisymMoC (see moc_solver_pc.py) for each individual point solve.'''
+
     def __init__(self, M_inf, a_inf, gamma, wall_params):
+        '''
+        Parameters
+        ----------
+        M_inf : float
+            Freestream Mach number at the mesh's starting point.
+        a_inf : float
+            Freestream speed of sound (m/s), used to convert q_max to
+            physical velocity units.
+        gamma : float
+            Specific heat ratio.
+        wall_params : dict
+            Parabolic wall geometry: {"x1", "r1", "x2", "r2"}, passed through
+            to AxisymMoC.
+        '''
         self.M_inf = M_inf
         self.a_inf = a_inf
         self.gamma = gamma
@@ -14,10 +33,29 @@ class MoC_Skeleton:
 
         self.moc_solver = AxisymMoC(self.q_max, self.gamma, self.wall_params)
 
-    def MoC_Mesher(self, log_file="outputs/nr_debug_log.txt"):
+    def MoC_Mesher(self, log_file="src/outputs/nr_debug_log.txt"):
+        '''
+        Marches the characteristic mesh downstream from the initial point on
+        the axis, row by row: each row starts with a new axis point, fills
+        in interior points via solve_internal_point(), and closes with a
+        wall point via solve_wall_point(). Stops early (returning the
+        partial mesh) if either solve step fails to converge.
+
+        Parameters
+        ----------
+        log_file : str
+            Path to append a per-point debug log to.
+
+        Returns
+        -------
+        np.ndarray of object
+            i_max x i_max array of Point objects (or None for unfilled/
+            unreached mesh cells).
+        '''
         i_max = 50
         delta_s = 0.1
-        success = True
+
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
         moc_mesh = np.empty((i_max, i_max), dtype=object)
         x0  = self.wall_params["x1"]

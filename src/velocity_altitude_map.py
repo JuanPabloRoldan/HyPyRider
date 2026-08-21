@@ -64,7 +64,10 @@ def calculate_density(pressure, temperature):
     float
         Air density in kg/m^3.
     '''
-    return pressure / (0.2869 * (temperature + 273.1))
+    # Specific gas constant for air, R = 286.9 J/(kg*K). Must stay in these
+    # units (not the more commonly quoted 0.2869 kJ/(kg*K)) since pressure
+    # is in Pascals here, per calculate_pressure()'s return value.
+    return pressure / (286.9 * (temperature + 273.1))
 
 def calculate_dynamic_pressure(gamma, p, M):
     '''
@@ -131,8 +134,8 @@ def plot_altitude_vs_mach(gamma, dynamic_pressures):
     plt.legend()
     plt.show()
 
-# # Example usage
-# gamma = 1.4  # Specific heat ratio for air
-# dynamic_pressures = [25331.25, 101325]  # Array of dynamic pressure values in Pascals
+if __name__ == "__main__":
+    gamma = 1.4  # Specific heat ratio for air
+    dynamic_pressures = [25331.25, 101325]  # Dynamic pressure values in Pascals
 
-# plot_altitude_vs_mach(gamma, dynamic_pressures)
+    plot_altitude_vs_mach(gamma, dynamic_pressures)

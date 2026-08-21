@@ -1,13 +1,67 @@
+'''
+==================================================
+File: moc_solver_pc.py
+Purpose: Predictor-corrector axisymmetric Method of Characteristics (MoC)
+solver. Equation numbers cited in comments (e.g. "Equation 2.31a") refer to
+Bowcutt's 1986 PhD dissertation, "Optimization of Hypersonic Waveriders
+Derived from Cone Flows Including Viscous Effects" (Univ. of Maryland).
+
+Nomenclature:
+    gamma    : Specific heat ratio (dimensionless)
+    q_max    : Maximum (limiting) velocity magnitude
+    theta    : Flow angle relative to the axis of symmetry (radians)
+    mu       : Local Mach angle, mu = asin(1/M) (radians)
+    q        : Local velocity magnitude
+    z, r     : Axisymmetric coordinates (axial, radial)
+==================================================
+'''
+
 from point import Point
 import numpy as np
 
 class AxisymMoC:
+    '''Predictor-corrector solver for one step of the axisymmetric MoC mesh:
+    given two known characteristic points, solves for the downstream point
+    where their characteristics intersect (interior) or meet the body wall.'''
+
     def __init__(self, q_max, gamma, wall_params):
+        '''
+        Parameters
+        ----------
+        q_max : float
+            Maximum (limiting) velocity magnitude for the flow.
+        gamma : float
+            Specific heat ratio.
+        wall_params : dict
+            Parabolic wall geometry: {"x1", "r1", "x2", "r2"} (see
+            Equation 2.36 for how the wall radius is defined from these).
+        '''
         self.gamma = gamma
         self.q_max = q_max
         self.wall_params = wall_params
 
     def solve_internal_point(self, PA, PB, max_iters=15, tol=1e-7):
+        '''
+        Solves for a new characteristic mesh point C at the intersection of
+        the C+ characteristic through PA and the C- characteristic through PB,
+        using a predictor-corrector iteration (Bowcutt eqs. 2.26-2.35).
+
+        Parameters
+        ----------
+        PA : Point
+            Point on the C+ characteristic (left-running).
+        PB : Point
+            Point on the C- characteristic (right-running).
+        max_iters : int
+            Maximum corrector iterations before giving up on convergence.
+        tol : float
+            Relative convergence tolerance on q_c between corrector steps.
+
+        Returns
+        -------
+        Point
+            The solved interior point C.
+        '''
 
         z_a = PA.x
         r_a = PA.r
@@ -36,7 +90,6 @@ class AxisymMoC:
         r_c_prime = drdz_a * (z_c_prime - z_a) + r_a
 
         # Equation 2.29a
-        #denom_q = (1 / (np.tan(mu_a) * q_a)) + (1 / (np.tan(mu_b) * q_b))
         denom_q = ((1 / (np.tan(mu_a))) / q_a) + ((1 / (np.tan(mu_b))) / q_b)
         part1 = theta_b - theta_a
         part2 = (1 / np.tan(mu_a)) + (1 / np.tan(mu_b))
@@ -100,7 +153,26 @@ class AxisymMoC:
         return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
 
     def solve_wall_point(self, PB, max_iters=15, tol=1e-7):
-        
+        '''
+        Solves for a new characteristic mesh point C on the parabolic body
+        wall, where the C- characteristic through PB meets the wall,
+        using a predictor-corrector iteration (Bowcutt eqs. 2.36-2.41).
+
+        Parameters
+        ----------
+        PB : Point
+            Point on the C- characteristic (right-running) approaching the wall.
+        max_iters : int
+            Maximum corrector iterations before giving up on convergence.
+        tol : float
+            Relative convergence tolerance on q_c between corrector steps.
+
+        Returns
+        -------
+        Point or None
+            The solved wall point C, or None if the predictor step's
+            quadratic (Equation 2.38) has no real solution (det < 0).
+        '''
         z_b = PB.x
         r_b = PB.r
         theta_b = PB.theta

@@ -55,8 +55,17 @@ class StreamlineIntegrator:
         
         alpha = np.arctan(abs(z / y))
 
+        max_steps = 100_000  # safety bound: prevents an infinite loop if a
+                              # streamline diverges and x never reaches 1
+        steps = 0
+
         while x < 1:
-            
+            steps += 1
+            if steps > max_steps:
+                print(f"Warning: streamline {streamline_id} did not converge "
+                      f"within {max_steps} steps (x={x:.4f}); truncating.")
+                break
+
             r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
             # alpha = np.arctan(abs(z / y))
             dt = 0.02
@@ -165,6 +174,7 @@ class StreamlineIntegrator:
             None
         """
         output_dir = "src/outputs"
+        os.makedirs(output_dir, exist_ok=True)
         filepath = os.path.join(output_dir, filename)
 
         # Get sorted unique streamline IDs
