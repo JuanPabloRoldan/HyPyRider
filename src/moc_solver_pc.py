@@ -26,7 +26,7 @@ class AxisymMoC:
     given two known characteristic points, solves for the downstream point
     where their characteristics intersect (interior) or meet the body wall.'''
 
-    def __init__(self, q_max, gamma, wall_params):
+    def __init__(self, q_max: float, gamma: float, wall_params: dict[str, float]) -> None:
         '''
         Parameters
         ----------
@@ -42,7 +42,9 @@ class AxisymMoC:
         self.q_max = q_max
         self.wall_params = wall_params
 
-    def solve_internal_point(self, PA, PB, max_iters=15, tol=1e-7):
+    def solve_internal_point(
+        self, PA: Point, PB: Point, max_iters: int = 15, tol: float = 1e-7
+    ) -> Point:
         '''
         Solves for a new characteristic mesh point C at the intersection of
         the C+ characteristic through PA and the C- characteristic through PB,
@@ -155,7 +157,9 @@ class AxisymMoC:
 
         return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
 
-    def solve_wall_point(self, PB, max_iters=15, tol=1e-7):
+    def solve_wall_point(
+        self, PB: Point, max_iters: int = 15, tol: float = 1e-7
+    ) -> Point | None:
         '''
         Solves for a new characteristic mesh point C on the parabolic body
         wall, where the C- characteristic through PB meets the wall,

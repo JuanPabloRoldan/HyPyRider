@@ -1,9 +1,11 @@
+import pandas as pd
+
 from oblique_shock_solver import ObliqueShockSolver
 from taylor_maccoll_solver import TaylorMaccollSolver
 
 
 class ConicalFlowAnalyzer:
-    def __init__(self, M1, gamma):
+    def __init__(self, M1: float, gamma: float) -> None:
         """
         Initializes the ConicalFlowAnalyzer with Mach number and specific heat ratio.
 
@@ -16,7 +18,7 @@ class ConicalFlowAnalyzer:
         self.os_solver = ObliqueShockSolver(gamma=gamma)
         self.tm_solver = TaylorMaccollSolver(gamma=gamma)
 
-    def solve_taylor_maccoll(self, theta_s):
+    def solve_taylor_maccoll(self, theta_s: float) -> tuple[float, float, float]:
         """
         Solves for the cone angle and normalized velocity components
         given a shock angle using the Taylor-Maccoll and Oblique Shock Solvers.
@@ -44,7 +46,7 @@ class ConicalFlowAnalyzer:
 
         return theta_c, V_r, V_theta
 
-    def tabulate_tm_shock_to_cone(self, theta_s):
+    def tabulate_tm_shock_to_cone(self, theta_s: float) -> pd.DataFrame:
         """
         Solves from the shock angle to the cone angle using Taylor-Maccoll equations
         and generates a table of results.
