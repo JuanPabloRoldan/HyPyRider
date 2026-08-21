@@ -1,3 +1,4 @@
+import os
 from point import Point
 from moc_solver_pc import AxisymMoC
 import numpy as np
@@ -14,10 +15,11 @@ class MoC_Skeleton:
 
         self.moc_solver = AxisymMoC(self.q_max, self.gamma, self.wall_params)
 
-    def MoC_Mesher(self, log_file="outputs/nr_debug_log.txt"):
+    def MoC_Mesher(self, log_file="src/outputs/nr_debug_log.txt"):
         i_max = 50
         delta_s = 0.1
-        success = True
+
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
         moc_mesh = np.empty((i_max, i_max), dtype=object)
         x0  = self.wall_params["x1"]

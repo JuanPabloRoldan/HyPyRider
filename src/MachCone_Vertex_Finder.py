@@ -57,17 +57,21 @@ def mach_vertex(chords, ref_length):
     y_wt = -chords[45, 1]  #And for wingtip
     z_wt = chords[45, 2]
 
-
-    mu = math.degrees(math.asin(0.1)) 
-    c = y_v + x_v * math.degrees(math.tan(mu)) - y_wt  #Obtain c
+    # Mach angle mu = asin(1/M) for M = 10 (matches the mu convention used
+    # elsewhere, e.g. Point.mu in point.py). Must stay in radians: math.tan()
+    # expects radians, and its output is a dimensionless slope, not an angle,
+    # so it must never be passed through math.degrees().
+    mu = math.asin(0.1)
+    tan_mu = math.tan(mu)
+    c = y_v + x_v * tan_mu - y_wt  #Obtain c
 
     #Find X
-    x_e_num = c ** 2 + z_wt ** 2 - math.degrees(math.tan(mu)) ** 2
-    x_e_dem = 2 * math.degrees(math.tan(mu))  * (c - math.degrees(math.tan(mu)))
+    x_e_num = c ** 2 + z_wt ** 2 - tan_mu ** 2
+    x_e_dem = 2 * tan_mu * (c - tan_mu)
     x_e = x_e_num / x_e_dem
-    
+
     #Find y
-    y_e = -((1 - x_e) ** 2 * math.degrees(math.tan(mu)) ** 2 - z_wt ** 2) ** 0.5 + y_wt
+    y_e = -((1 - x_e) ** 2 * tan_mu ** 2 - z_wt ** 2) ** 0.5 + y_wt
 
     #Find z
     z_e = 0
@@ -82,7 +86,9 @@ def mach_vertex(chords, ref_length):
 # Main execution
 file_path = 'LeadingEdgeData_LeftSide.nmb'
 try:
-    ref_length, dim_chordinates = read_nmb_file(file_path) 
+    file_data = read_nmb_file(file_path)
+    ref_length = file_data["ref_length"]
+    dim_chordinates = file_data["non_dim_chords"]
     print(dim_chordinates)
 
     mach_vertex_chords = mach_vertex(dim_chordinates, ref_length)

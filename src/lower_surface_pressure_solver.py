@@ -150,7 +150,7 @@ class SurfaceMeshAnalyzer:
 
         return Cp_vehicle
 
-    def export_to_vtk(self, output_filename="outputs/output.vtk"):
+    def export_to_vtk(self, output_filename="src/outputs/output.vtk"):
         """Exports the STL surface mesh with interpolated results as a VTK file."""
         output_dir = os.path.dirname(output_filename)
         os.makedirs(output_dir, exist_ok=True)  # Ensure directory exists
