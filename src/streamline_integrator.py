@@ -1,9 +1,10 @@
 import os
-import random
+
 import numpy as np
-import pandas as pd
-from conical_flow_analyzer import ConicalFlowAnalyzer
+
 import process_LE_points
+from conical_flow_analyzer import ConicalFlowAnalyzer
+
 
 class StreamlineIntegrator:
     def __init__(self, gamma, M1, theta_s):
@@ -48,11 +49,11 @@ class StreamlineIntegrator:
         order = 0 # tracks # of points in a streamline
 
         # **Store the first point explicitly (the leading edge point)**
-        streamline_points.append([x * self.ref_length, 
-                                y * self.ref_length, 
+        streamline_points.append([x * self.ref_length,
+                                y * self.ref_length,
                                 z * self.ref_length, streamline_id, order])
         order += 1  # Increment order before stepping forward
-        
+
         alpha = np.arctan(abs(z / y))
 
         max_steps = 100_000  # safety bound: prevents an infinite loop if a
@@ -86,10 +87,10 @@ class StreamlineIntegrator:
             z = w * np.sin(alpha)
 
             # Store points with streamline ID and order
-            streamline_points.append([x * self.ref_length, 
-                                      y * self.ref_length, 
+            streamline_points.append([x * self.ref_length,
+                                      y * self.ref_length,
                                       z * self.ref_length, streamline_id, order])
-            
+
             order += 1
 
             if np.isclose(theta, self.theta_c, rtol=0.01):
@@ -105,7 +106,7 @@ class StreamlineIntegrator:
         """
         Generates the lower surface by tracing streamlines from the leading-edge (LE) points.
 
-        The function normalizes the LE points, traces each streamline, and prints the 
+        The function normalizes the LE points, traces each streamline, and prints the
         trajectory to the console.
 
         Parameters:
@@ -149,13 +150,13 @@ class StreamlineIntegrator:
             for streamline_id in set(point[3] for point in self.streamline_data):
                 # Filter out points that exceed ref_length
                 streamline = [p for p in self.streamline_data if p[3] == streamline_id]
-                
+
                 if not streamline or len(streamline) == 1:
                     continue
-                
+
                 # Write the number of points in the streamline
                 f.write(f"{len(streamline)}\n")
-                
+
                 # Write the coordinates with streamline_id and order
                 for x, y, z, s_id, order in streamline:
                     f.write(f"{x}\t{y}\t{z}\n")
@@ -164,7 +165,7 @@ class StreamlineIntegrator:
 
     def close_streamline_segments(self, filename):
         """
-        Closes the segments by adding additional segments connecting the first points 
+        Closes the segments by adding additional segments connecting the first points
         and last points of adjacent streamlines.
 
         Parameters:
@@ -194,17 +195,17 @@ class StreamlineIntegrator:
 
             # Connect first points of adjacent streamlines
             for i in range(len(first_points) - 1):
-                f.write(f"2\n")
+                f.write("2\n")
                 f.write(f"{first_points[i][0]}\t{first_points[i][1]}\t{first_points[i][2]}\n")
                 f.write(f"{first_points[i + 1][0]}\t{first_points[i + 1][1]}\t{first_points[i + 1][2]}\n")
 
             # Connect last points of adjacent streamlines
             for i in range(len(last_points) - 1):
-                f.write(f"2\n")
+                f.write("2\n")
                 f.write(f"{last_points[i][0]}\t{last_points[i][1]}\t{last_points[i][2]}\n")
                 f.write(f"{last_points[i + 1][0]}\t{last_points[i + 1][1]}\t{last_points[i + 1][2]}\n")
 
-        print(f"Closing segments appended to {filename}") 
+        print(f"Closing segments appended to {filename}")
 
 # Example Usage
 if __name__ == "__main__":

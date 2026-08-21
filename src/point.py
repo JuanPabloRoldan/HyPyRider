@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Point:
     '''Shared state object for a single characteristic mesh point, used
     throughout the axisymmetric MoC solver (moc_solver_pc.py,

@@ -18,6 +18,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator
 
+
 def compute_metric_values(eta_grid, xi_grid, x_vals, y_vals, u_field, v_field):
     '''
     Computes the grid metric derivatives (eta_x, eta_y, xi_x, xi_y) that
@@ -185,7 +186,9 @@ if __name__ == "__main__":
                                              (eta_grid, xi_grid), metric_values, method='manual')
 
     print("Scipy Interpolation Result:")
-    print(f"  eta1 = {result_scipy[0]:.8f}, xi1 = {result_scipy[1]:.8f}, x1 = {result_scipy[2]:.8f}, y1 = {result_scipy[3]:.8f}")
+    print(f"  eta1 = {result_scipy[0]:.8f}, xi1 = {result_scipy[1]:.8f}, "
+          f"x1 = {result_scipy[2]:.8f}, y1 = {result_scipy[3]:.8f}")
 
     print("\n Manual Interpolation Result:")
-    print(f"  eta1 = {result_manual[0]:.8f}, xi1 = {result_manual[1]:.8f}, x1 = {result_manual[2]:.8f}, y1 = {result_manual[3]:.8f}")
+    print(f"  eta1 = {result_manual[0]:.8f}, xi1 = {result_manual[1]:.8f}, "
+          f"x1 = {result_manual[2]:.8f}, y1 = {result_manual[3]:.8f}")

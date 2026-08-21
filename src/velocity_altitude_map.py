@@ -1,5 +1,6 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 def calculate_pressure(altitude):
     '''
@@ -113,8 +114,6 @@ def plot_altitude_vs_mach(gamma, dynamic_pressures):
         mach_numbers = []
         for altitude in altitudes:
             pressure = calculate_pressure(altitude)
-            temperature = calculate_temperature(altitude)
-            density = calculate_density(pressure, temperature)
             # Calculate Mach number for given dynamic pressure (q)
             mach = np.sqrt((2 * q) / (gamma * pressure))
             mach_numbers.append(mach)

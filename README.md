@@ -103,11 +103,26 @@ Automated tests live in `tests/` and run via `pytest`, configured by `pytest.ini
 pytest
 ```
 
-Any bug fix or new solver logic should keep existing tests passing and add new tests alongside it. Note that test coverage today only spans the isentropic, oblique shock, and Taylor-Maccoll solvers — most of `src/` (the MoC solver, streamline integrator, surface pressure solver, etc.) has no automated tests yet.
+Any bug fix or new solver logic should keep existing tests passing and add new tests alongside it. Test coverage spans the isentropic, oblique shock, Taylor-Maccoll, and MoC point solvers, plus `point.py`, `process_LE_points.py`, `metric_derivative_solver.py`, and `velocity_altitude_map.py`. The streamline integrator and surface pressure solver still have no automated tests.
+
+A GitHub Actions workflow (`.github/workflows/tests.yml`) runs the full suite on every push and pull request against `main`, on Python 3.11 and 3.12.
 
 ---
 
-### 6. Add and Commit Changes
+### 6. Lint Your Changes
+
+This repo uses [ruff](https://docs.astral.sh/ruff/) for linting (unused imports/variables, import ordering, line length). Install it via the dev requirements file and run it from the repo root:
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+```
+
+`ruff check .` also runs in CI on every push and pull request.
+
+---
+
+### 7. Add and Commit Changes
 
 After making and testing your changes:
 
@@ -125,7 +140,7 @@ After making and testing your changes:
 
 ---
 
-### 7. Push Your Branch and Open a Pull Request
+### 8. Push Your Branch and Open a Pull Request
 
 ```bash
 # Push your branch to GitHub

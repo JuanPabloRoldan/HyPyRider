@@ -1,9 +1,10 @@
 import numpy as np
+
 from src.velocity_altitude_map import (
-    calculate_pressure,
-    calculate_temperature,
     calculate_density,
     calculate_dynamic_pressure,
+    calculate_pressure,
+    calculate_temperature,
 )
 
 

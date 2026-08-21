@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes (unused imports/variables, undefined names, etc.)
+    "I",   # isort (import ordering)
+]
+ignore = [
+    "E741",  # ambiguous variable names (l, I, O) -- common in physics code (e.g. l for length)
+]

@@ -1,9 +1,12 @@
 import os
+
 import numpy as np
-from stl import mesh
 import pyvista as pv
 from scipy.interpolate import interp1d
-from velocity_altitude_map import calculate_pressure, calculate_dynamic_pressure
+from stl import mesh
+
+from velocity_altitude_map import calculate_dynamic_pressure, calculate_pressure
+
 
 class SurfaceMeshAnalyzer:
     def __init__(self, file_path):
@@ -103,8 +106,11 @@ class SurfaceMeshAnalyzer:
 
         self.cell_mach = mach_interp(self.angles)
         cell_P_P0 = P_P0_interp(self.angles)
-        cell_T_T0 = T_T0_interp(self.angles)
-        cell_rho_rho0 = rho_rho0_interp(self.angles)
+        # Stored on self (matching self.cell_mach above) rather than kept
+        # local: export_to_vtk() already has commented-out lines expecting
+        # self.cell_T_T0 / self.cell_rho_rho0 to exist.
+        self.cell_T_T0 = T_T0_interp(self.angles)
+        self.cell_rho_rho0 = rho_rho0_interp(self.angles)
 
         # Look into stag_properties to get stagnation pressure (P0)
         P0 = stag_properties["P0"]
@@ -115,7 +121,7 @@ class SurfaceMeshAnalyzer:
         self.cell_Cl_exact = self.cell_Cp_exact * np.sin(np.radians(90) - self.angles)
         self.cell_Cd_exact = self.cell_Cp_exact * np.cos(np.radians(90) - self.angles)
 
-    
+
     def calculate_newtonian_pressure_coefficients_cell(self):
         """
         Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
@@ -125,7 +131,7 @@ class SurfaceMeshAnalyzer:
         Returns
             None.
         """
-        
+
         self.cell_Cp_newtonian = 2 * np.sin(self.angles)**2
         self.cell_Cd_newtonian = 2 * np.sin(self.angles)**3
         self.cell_Cl_newtonian =  np.cos(self.angles) * 2 * np.sin(self.angles)**2
@@ -142,7 +148,7 @@ class SurfaceMeshAnalyzer:
 
         Returns
         -------
-            - Cp_vehicle: Singular Cp value across entire vehicle. 
+            - Cp_vehicle: Singular Cp value across entire vehicle.
         """
         Cp_vehicle = np.sum(Cp_input*self.cell_areas)/np.sum(self.cell_areas)
 
@@ -158,7 +164,7 @@ class SurfaceMeshAnalyzer:
 
         # Convert STL to PyVista Mesh
         points = self.mesh.vectors.reshape(-1, 3)  # Extract unique points
-        faces = np.hstack([np.full((len(self.mesh.vectors), 1), 3), 
+        faces = np.hstack([np.full((len(self.mesh.vectors), 1), 3),
                            np.arange(len(points)).reshape(-1, 3)]).astype(np.int64)
 
         pv_mesh = pv.PolyData(points, faces)
@@ -203,7 +209,7 @@ if __name__ == "__main__":
             print(f'Cell {i}: Area = {analyzer.cell_areas[i]:.6f}, '
                   f'Normal Vector = {analyzer.normal_vectors[i]}, '
                   f'Angle (deg) = {np.degrees(analyzer.angles[i]):.2f}')
-    
+
     from taylor_maccoll_solver import TaylorMaccollSolver
     tm_solver = TaylorMaccollSolver(gamma=1.2)
 
@@ -212,7 +218,7 @@ if __name__ == "__main__":
     theta_c = np.radians(18.1951829)
     Mc = 6.41062720
     V_0, Vr0, dVr0 = tm_solver.calculate_velocity_components(Mc, theta_c, theta_c)
-    
+
     results_df = tm_solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
 
     altitude = 30000 # meters

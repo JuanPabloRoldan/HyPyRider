@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def extract_points_from_file(file_path):
     '''
     Extracts 3D points from a formatted text file and returns them as a pandas DataFrame.
@@ -26,7 +27,7 @@ def extract_points_from_file(file_path):
 
     # Extract the points, which are the next 'num_points' lines
     point_lines = lines[1:num_points + 1]
-    
+
     # Parse the points into a pandas DataFrame
     data = [list(map(float, line.split()[0:3])) for line in point_lines]
     df = pd.DataFrame(data, columns=['X', 'Y', 'Z'])

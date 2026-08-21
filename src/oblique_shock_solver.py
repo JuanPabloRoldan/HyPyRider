@@ -25,6 +25,7 @@ Nomenclature:
 
 import numpy as np
 
+
 class ObliqueShockSolver:
     def __init__(self, gamma=1.4):
         '''
@@ -59,7 +60,7 @@ class ObliqueShockSolver:
 
     def calculate_post_shock_conditions(self, M1, theta_s):
         """
-        Calculates the post-shock conditions, including the downstream Mach number (M2), 
+        Calculates the post-shock conditions, including the downstream Mach number (M2),
         flow deflection angle (delta), and thermodynamic property ratios.
 
         Parameters

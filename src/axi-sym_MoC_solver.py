@@ -1,8 +1,11 @@
 import os
-from point import Point
-from moc_solver_pc import AxisymMoC
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from moc_solver_pc import AxisymMoC
+from point import Point
+
 
 class MoC_Skeleton:
     '''Builds a full axisymmetric MoC characteristic mesh, marching a grid of
@@ -91,7 +94,7 @@ class MoC_Skeleton:
                 PA = moc_mesh[i - 1][j]
                 PB = moc_mesh[i][j - 1]
                 PC = self.moc_solver.solve_internal_point(PA, PB)
-    
+
                 if PC is None:
                     return moc_mesh
                 moc_mesh[i][j] = PC
