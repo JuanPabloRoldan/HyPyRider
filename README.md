@@ -102,7 +102,7 @@ pytest
 
 Any bug fix or new solver logic should keep existing tests passing and add new tests alongside it. Test coverage spans the isentropic, oblique shock, Taylor-Maccoll, and MoC point solvers, plus `point.py`, `process_LE_points.py`, `metric_derivative_solver.py`, and `velocity_altitude_map.py`. The streamline integrator and surface pressure solver still have no automated tests.
 
-A GitHub Actions workflow (`.github/workflows/tests.yml`) runs the full suite on every push and pull request against `main`, on Python 3.11 and 3.12.
+A GitHub Actions workflow (`.github/workflows/tests.yml`) runs the full suite on every push and pull request against `main`, on Python 3.12 (the version `requirements.txt` is pinned against).
 
 ---
 
