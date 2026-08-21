@@ -112,7 +112,7 @@ class TaylorMaccollSolver:
 
     def taylor_maccoll_system(self, theta: float, Vr: float, dVr: float) -> np.ndarray:
         '''
-        Defines the Taylor-Maccoll ODE system.
+        Defines the Taylor-Maccoll ODE system (Bowcutt Eqn. 2.1).
 
         Parameters
         ----------
@@ -130,12 +130,19 @@ class TaylorMaccollSolver:
         '''
         B = (self.gamma - 1) / 2 * (1 - Vr**2 - dVr**2)
         C = (2 * Vr + dVr / np.tan(theta))
-        numerator = dVr**2 - (B * C)
+        # Eqn 2.1 solved for d2Vr/dtheta2: the first numerator term is
+        # Vr*dVr**2, not dVr**2 alone -- confirmed against the paper's own
+        # tabulated example (M1=10, theta_s=30deg, gamma=1.4 -> theta_c
+        # =26.5909011deg) by re-deriving the equation from its stated form
+        # and integrating both ways; only the Vr*dVr**2 form reproduces it.
+        numerator = Vr * dVr**2 - (B * C)
         denominator = B - dVr**2
         ddVr = numerator / denominator
         return np.array([dVr, ddVr])
 
-    def rk4_step(self, theta: float, Vr: float, dVr: float) -> tuple[float, float]:
+    def rk4_step(
+        self, theta: float, Vr: float, dVr: float, h: float | None = None
+    ) -> tuple[float, float]:
         '''
         Performs a single RK4 integration step for Taylor-Maccoll equations.
 
@@ -147,37 +154,44 @@ class TaylorMaccollSolver:
             Current radial velocity.
         dVr : float
             Current derivative of radial velocity.
+        h : float, optional
+            Step size for this call; defaults to self.h. Pass a negative
+            value to integrate toward decreasing theta (e.g. from the
+            shock toward the cone surface, per solve()).
 
         Returns
         -------
         tuple
             Updated values of Vr and dVr after one step.
         '''
+        if h is None:
+            h = self.h
+
         # K1 and M1
         K1, M1 = self.taylor_maccoll_system(theta, Vr, dVr)
-        K1 = self.h * K1
-        M1 = self.h * M1
+        K1 = h * K1
+        M1 = h * M1
 
         # K2 and M2
-        K2 = self.h * (dVr + 0.5 * M1)
-        M2 = self.h * self.taylor_maccoll_system(
-            theta + 0.5 * self.h,
+        K2 = h * (dVr + 0.5 * M1)
+        M2 = h * self.taylor_maccoll_system(
+            theta + 0.5 * h,
             Vr + 0.5 * K1,
             dVr + 0.5 * M1
         )[1]
 
         # K3 and M3
-        K3 = self.h * (dVr + 0.5 * M2)
-        M3 = self.h * self.taylor_maccoll_system(
-            theta + 0.5 * self.h,
+        K3 = h * (dVr + 0.5 * M2)
+        M3 = h * self.taylor_maccoll_system(
+            theta + 0.5 * h,
             Vr + 0.5 * K2,
             dVr + 0.5 * M2
         )[1]
 
         # K4 and M4
-        K4 = self.h * (dVr + M3)
-        M4 = self.h * self.taylor_maccoll_system(
-            theta + self.h,
+        K4 = h * (dVr + M3)
+        M4 = h * self.taylor_maccoll_system(
+            theta + h,
             Vr + K3,
             dVr + M3
         )[1]
@@ -190,33 +204,48 @@ class TaylorMaccollSolver:
 
     def solve(self, theta0: float, Vr0: float, dVr0: float) -> tuple[float, float, float]:
         '''
-        Solves the Taylor-Maccoll equation and returns the final values.
+        Integrates from the shock (theta0) toward the cone axis to find the
+        cone half-angle, following Bowcutt p.13: "Eq. (2.1) is integrated
+        from the chosen shock angle to the cone surface ... until V'theta
+        changes sign, then linear interpolation between the last two points
+        is performed to obtain conditions at the cone surface." Since
+        theta_c < theta_s always, theta decreases over the integration.
 
         Parameters
         ----------
         theta0 : float
-            Initial angle (radians).
+            Shock angle in radians -- the polar angle (from the axis of
+            symmetry) of the point immediately behind the shock. Not the
+            flow deflection angle.
         Vr0 : float
-            Initial radial velocity.
+            Radial velocity immediately behind the shock.
         dVr0 : float
-            Initial derivative of Vr.
+            d(Vr)/dtheta immediately behind the shock (= V_theta).
 
         Returns
         -------
         tuple
-            cone angle (radians), V_r, and V_theta.
+            Cone half-angle (radians), V_r, and V_theta (~0) at the cone
+            surface.
         '''
         theta = theta0
         Vr = Vr0
-        dVr = -dVr0
+        dVr = dVr0
+        h = -self.h  # walk from the shock toward the axis: theta decreases
 
-        while abs(dVr) > 1e-3:  # Continue until abs(dVr/dtheta) < 1e-3
-            # Perform RK4 step
-            Vr, dVr = self.rk4_step(theta, Vr, dVr)
-            theta += self.h
+        prev_theta, prev_Vr, prev_dVr = theta, Vr, dVr
+        while dVr < 0:
+            prev_theta, prev_Vr, prev_dVr = theta, Vr, dVr
+            Vr, dVr = self.rk4_step(theta, Vr, dVr, h)
+            theta += h
 
-        # Return final values
-        return theta, Vr, dVr
+        # Linearly interpolate between the last two points for the exact
+        # V_theta = 0 crossing (the cone surface).
+        frac = prev_dVr / (prev_dVr - dVr)
+        theta_c = prev_theta + frac * (theta - prev_theta)
+        Vr_c = prev_Vr + frac * (Vr - prev_Vr)
+
+        return theta_c, Vr_c, 0.0
 
     def tabulate_from_shock_to_cone(
         self, theta_s: float, theta_c: float, Vr0: float, dVr0: float

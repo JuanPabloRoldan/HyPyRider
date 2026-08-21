@@ -84,7 +84,15 @@ def mach_vertex(chords, ref_length):
     x_e_dem = 2 * tan_mu * (c - tan_mu)
     x_e = x_e_num / x_e_dem
 
-    #Find y
+    # Find y. NOTE: Eqn 2.18b in the paper is
+    #   ye = +[(1-ze)**2 * tan(mu)**2 - x_wt**2]**0.5 + y_wt
+    # (positive square root), but this line uses the negative root. That
+    # may be an intentional choice of the physically-relevant branch given
+    # this file's y-sign convention (y_v/y_wt are negated from the raw
+    # file values just above), or it may be a sign bug -- it can't be
+    # settled without a real .nmb file to run this end-to-end against, and
+    # no such file exists in this repo (see module docstring). Flagging
+    # for follow-up once test data is available, rather than guessing.
     y_e = -((1 - x_e) ** 2 * tan_mu ** 2 - z_wt ** 2) ** 0.5 + y_wt
 
     #Find z

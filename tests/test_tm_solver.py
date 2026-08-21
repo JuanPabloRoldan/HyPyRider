@@ -46,7 +46,16 @@ def test_calculate_Mach_from_components(solver):
 
 def test_taylor_maccoll_system(solver):
     """
-    Test the Taylor-Maccoll 2nd order differential equation system
+    Test the Taylor-Maccoll 2nd order differential equation system (Eqn 2.1).
+
+    expected_result was hand-derived directly from Eqn 2.1: solving the
+    equation for d2Vr/dtheta2 gives ddVr = (Vr*dVr**2 - B*C) / (B - dVr**2),
+    which requires the Vr*dVr**2 term above -- not dVr**2 alone. The old
+    expected value (-1.622309628) was a self-referential golden value from
+    a formula missing that Vr factor; it happened to still fall within this
+    test's atol=1e-3 by coincidence (Vr=0.8 and dVr**2=1e-4 keep the delta
+    small here), which is why it went undetected until checked against the
+    paper directly.
     """
 
     theta = np.radians(25)
@@ -54,28 +63,34 @@ def test_taylor_maccoll_system(solver):
     dVr = 0.01
     result = solver.taylor_maccoll_system(theta, Vr, dVr)
 
-    expected_result = np.array([dVr, -1.622309628])
-    assert np.allclose(result, expected_result, atol=1e-3)
+    expected_result = np.array([dVr, -1.6225878698])
+    assert np.allclose(result, expected_result, atol=1e-6)
 
 def test_solve(solver):
     """
     Test the Taylor-Maccoll solver by asserting the resultant cone angle.
+
+    solve() integrates from the shock angle toward the cone axis, so
+    theta0 here must be theta_s (the shock angle), not the flow deflection
+    angle -- passing the deflection angle was the bug this test used to
+    (silently) lock in, since the old rtol=0.01 tolerance was loose enough
+    to mask the ~0.19deg error it produced.
     """
-    # Initial conditions
     # Values come from M1 = 10 and gamma = 1.4 @ wave angle of 30deg
-    # Recall, theta0 = wedge angle from OS relations
-    theta0 = np.radians(23.4132244)  # Initial angle in radians
-    Vr0 = 0.845154249        # Initial radial velocity
-    dVr0 = -0.097590007       # Initial derivative of Vr ~ V_theta
+    theta_s = np.radians(30)  # Shock angle, in radians
+    Vr0 = 0.845154249        # Radial velocity immediately behind the shock
+    dVr0 = -0.097590007       # d(Vr)/dtheta immediately behind the shock ~ V_theta
 
     # Call the solve function
-    theta_c, Vr, dVr = solver.solve(theta0, Vr0, dVr0)
+    theta_c, Vr, dVr = solver.solve(theta_s, Vr0, dVr0)
 
     # Assert V_theta ~ 0 (this is true at the cone angle)
     assert np.isclose(dVr, 0, atol=0.01), \
         "Solver did not return a value of 0 for V_theta."
 
-    # Expected cone angle
+    # Expected cone angle, from Bowcutt's own worked example for this case
+    # (dissertation p.14, and cited again as the demo values in this
+    # module's __main__ block).
     expected_theta_c = np.radians(26.5909011)  # Expected cone angle
     expected_Mc = 3.57846955    # Expected Mach at cone angle.
 
