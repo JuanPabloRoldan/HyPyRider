@@ -25,8 +25,9 @@ Nomenclature:
 
 import numpy as np
 
+
 class ObliqueShockSolver:
-    def __init__(self, gamma=1.4):
+    def __init__(self, gamma: float = 1.4) -> None:
         '''
             Initializes the oblique shock solver with a specific heat ratio.
 
@@ -37,7 +38,7 @@ class ObliqueShockSolver:
         '''
         self.gamma = gamma
 
-    def calculate_flow_deflection_angle(self, M1, theta_s):
+    def calculate_flow_deflection_angle(self, M1: float, theta_s: float) -> float:
         '''
             Calculates the flow deflection angle (delta).
 
@@ -57,9 +58,9 @@ class ObliqueShockSolver:
         delta = np.arctan(1 / cot_delta)
         return delta
 
-    def calculate_post_shock_conditions(self, M1, theta_s):
+    def calculate_post_shock_conditions(self, M1: float, theta_s: float) -> dict[str, float]:
         """
-        Calculates the post-shock conditions, including the downstream Mach number (M2), 
+        Calculates the post-shock conditions, including the downstream Mach number (M2),
         flow deflection angle (delta), and thermodynamic property ratios.
 
         Parameters

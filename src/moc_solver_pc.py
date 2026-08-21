@@ -16,15 +16,17 @@ Nomenclature:
 ==================================================
 '''
 
-from point import Point
 import numpy as np
+
+from point import Point
+
 
 class AxisymMoC:
     '''Predictor-corrector solver for one step of the axisymmetric MoC mesh:
     given two known characteristic points, solves for the downstream point
     where their characteristics intersect (interior) or meet the body wall.'''
 
-    def __init__(self, q_max, gamma, wall_params):
+    def __init__(self, q_max: float, gamma: float, wall_params: dict[str, float]) -> None:
         '''
         Parameters
         ----------
@@ -40,7 +42,9 @@ class AxisymMoC:
         self.q_max = q_max
         self.wall_params = wall_params
 
-    def solve_internal_point(self, PA, PB, max_iters=15, tol=1e-7):
+    def solve_internal_point(
+        self, PA: Point, PB: Point, max_iters: int = 15, tol: float = 1e-7
+    ) -> Point:
         '''
         Solves for a new characteristic mesh point C at the intersection of
         the C+ characteristic through PA and the C- characteristic through PB,
@@ -124,7 +128,7 @@ class AxisymMoC:
             r_c_new = drdz_a * (z_c_new - z_a) + r_a
 
             C1 = 0.5 * ((1 / (np.tan(mu_c_prime) * q_c_prime)) + (1 / (np.tan(mu_a) * q_a)))
-            
+
             C2_a = np.sin(mu_a) * np.sin(theta_a) / (r_a * np.cos(theta_a + mu_a))
             C2_b = np.sin(mu_c_prime) * np.sin(theta_c_prime) / (r_c_prime * np.cos(theta_c_prime + mu_c_prime))
             C2 = 0.5 * (C2_a + C2_b) * (z_c_new - z_a)
@@ -140,19 +144,22 @@ class AxisymMoC:
 
             # Equation 2.27
             M_c_new = np.sqrt(2 / ((self.gamma - 1) * (((self.q_max / q_c_new) ** 2) - 1)))
-            
+
             # Equation 2.26
             mu_c_new = np.arcsin(1 / M_c_new)
 
             if abs(q_c_new - q_c_prime) / q_c_prime < tol:
-                
+
                 break
 
-            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime = z_c_new, r_c_new, theta_c_new, M_c_new, q_c_new
+            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, mu_c_prime, q_c_prime = \
+                z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new, q_c_new
 
         return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
 
-    def solve_wall_point(self, PB, max_iters=15, tol=1e-7):
+    def solve_wall_point(
+        self, PB: Point, max_iters: int = 15, tol: float = 1e-7
+    ) -> Point | None:
         '''
         Solves for a new characteristic mesh point C on the parabolic body
         wall, where the C- characteristic through PB meets the wall,
@@ -196,10 +203,25 @@ class AxisymMoC:
         a = drdz_b
         b = (r2 - r1) / ((z2 - z1) ** 2)
         c = b * (z1 * z1) + (a * z_b) - r_b +r1
-        
+
         det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
         if det < 0:
-            print('neg')
+            # The straight-line predictor from PB has no real intersection
+            # with the parabolic wall. In practice this has been observed
+            # to happen once PB has marched past the wall's defined z-extent
+            # (z_b > x2): the parabola is only a model of the body within
+            # [x1, x2], and extrapolating it further can easily stop
+            # intersecting the characteristic line at all. It is not
+            # necessarily a bug in this solve -- if you hit this, check
+            # whether z_b below is beyond wall_params["x2"] before assuming
+            # the mesh math is wrong.
+            if z_b > z2 or z_b < z1:
+                print(f"solve_wall_point: no real intersection (det={det:.4g}); "
+                      f"z_b={z_b:.4f} is outside the wall's defined domain "
+                      f"[{z1:.4f}, {z2:.4f}]")
+            else:
+                print(f"solve_wall_point: no real intersection (det={det:.4g}) "
+                      f"at z_b={z_b:.4f}, within wall domain [{z1:.4f}, {z2:.4f}]")
             return None
         z_c_prime = (2 * b * z1 + a + np.sqrt(det)) / (2 * b)
 
@@ -256,10 +278,11 @@ class AxisymMoC:
             mu_c_new = np.arcsin(1 / M_c_new)
 
             if abs(q_c_new - q_c_prime) / q_c_prime < tol:
-            
+
                 break
 
-            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, mu_c_prime, q_c_prime = z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new, q_c_new
+            z_c_prime, r_c_prime, theta_c_prime, M_c_prime, mu_c_prime, q_c_prime = \
+                z_c_new, r_c_new, theta_c_new, M_c_new, mu_c_new, q_c_new
 
         return Point(z_c_prime, r_c_prime, theta_c_prime, M_c_prime, q_c_prime)
 

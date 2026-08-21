@@ -25,10 +25,12 @@ Nomenclature:
 
 import numpy as np
 import pandas as pd
+
 from isentropic_relations_solver import IsentropicRelationsSolver
 
+
 class TaylorMaccollSolver:
-    def __init__(self, gamma=1.4, step_size=0.0001):
+    def __init__(self, gamma: float = 1.4, step_size: float = 0.0001) -> None:
         '''
         Initializes the Taylor-Maccoll solver with default parameters.
 
@@ -42,7 +44,9 @@ class TaylorMaccollSolver:
         self.gamma = gamma
         self.h = step_size
 
-    def calculate_velocity_components(self, M, theta, delta):
+    def calculate_velocity_components(
+        self, M: float, theta: float, delta: float
+    ) -> tuple[float, float, float]:
         '''
         Calculates and decomposes the normalized velocity magnitude (V') into its components.
 
@@ -77,7 +81,7 @@ class TaylorMaccollSolver:
         # Return the computed values
         return V_prime, V_r, V_theta
 
-    def calculate_Mach_from_components(self, V_r, V_theta):
+    def calculate_Mach_from_components(self, V_r: float, V_theta: float) -> float:
         '''
         Calculates the Mach number from the radial and tangential velocity components.
 
@@ -106,7 +110,7 @@ class TaylorMaccollSolver:
         # Return the computed Mach number
         return M
 
-    def taylor_maccoll_system(self, theta, Vr, dVr):
+    def taylor_maccoll_system(self, theta: float, Vr: float, dVr: float) -> np.ndarray:
         '''
         Defines the Taylor-Maccoll ODE system.
 
@@ -131,7 +135,7 @@ class TaylorMaccollSolver:
         ddVr = numerator / denominator
         return np.array([dVr, ddVr])
 
-    def rk4_step(self, theta, Vr, dVr):
+    def rk4_step(self, theta: float, Vr: float, dVr: float) -> tuple[float, float]:
         '''
         Performs a single RK4 integration step for Taylor-Maccoll equations.
 
@@ -157,24 +161,24 @@ class TaylorMaccollSolver:
         # K2 and M2
         K2 = self.h * (dVr + 0.5 * M1)
         M2 = self.h * self.taylor_maccoll_system(
-            theta + 0.5 * self.h, 
-            Vr + 0.5 * K1, 
+            theta + 0.5 * self.h,
+            Vr + 0.5 * K1,
             dVr + 0.5 * M1
         )[1]
 
         # K3 and M3
         K3 = self.h * (dVr + 0.5 * M2)
         M3 = self.h * self.taylor_maccoll_system(
-            theta + 0.5 * self.h, 
-            Vr + 0.5 * K2, 
+            theta + 0.5 * self.h,
+            Vr + 0.5 * K2,
             dVr + 0.5 * M2
         )[1]
 
         # K4 and M4
         K4 = self.h * (dVr + M3)
         M4 = self.h * self.taylor_maccoll_system(
-            theta + self.h, 
-            Vr + K3, 
+            theta + self.h,
+            Vr + K3,
             dVr + M3
         )[1]
 
@@ -184,7 +188,7 @@ class TaylorMaccollSolver:
 
         return Vr_next, dVr_next
 
-    def solve(self, theta0, Vr0, dVr0):
+    def solve(self, theta0: float, Vr0: float, dVr0: float) -> tuple[float, float, float]:
         '''
         Solves the Taylor-Maccoll equation and returns the final values.
 
@@ -213,8 +217,10 @@ class TaylorMaccollSolver:
 
         # Return final values
         return theta, Vr, dVr
-    
-    def tabulate_from_shock_to_cone(self, theta_s, theta_c, Vr0, dVr0):
+
+    def tabulate_from_shock_to_cone(
+        self, theta_s: float, theta_c: float, Vr0: float, dVr0: float
+    ) -> pd.DataFrame:
         '''
         Solves the Taylor-Maccoll equation and returns a DataFrame with results.
 
@@ -265,7 +271,10 @@ class TaylorMaccollSolver:
             results.append([theta, M, Vr, dVr, p_ratio, t_ratio, rho_ratio])
 
         # Create and return DataFrame
-        results_df = pd.DataFrame(results, columns=["Theta (radians)", "Mach", "V_r", "V_theta", "P/P0", "T/T0", "rho/rho0"])
+        results_df = pd.DataFrame(
+            results,
+            columns=["Theta (radians)", "Mach", "V_r", "V_theta", "P/P0", "T/T0", "rho/rho0"],
+        )
         return results_df
 
 # Example usage
@@ -275,6 +284,6 @@ if __name__ == "__main__":
     theta_c = np.radians( 26.5909011)
     Mc = 3.57846955
     V_0, Vr0, dVr0 = solver.calculate_velocity_components(Mc, theta_c, theta_c)
-    
+
     results_df = solver.tabulate_from_shock_to_cone(theta_s, theta_c, Vr0, dVr0)
     print(results_df.head())

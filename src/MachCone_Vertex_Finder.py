@@ -10,8 +10,10 @@ with this repo, so this script cannot be run end-to-end yet.
 ==================================================
 '''
 
-import numpy as np
 import math
+
+import numpy as np
+
 
 def read_nmb_file(file_ID):
     """
@@ -89,7 +91,7 @@ def mach_vertex(chords, ref_length):
     z_e = 0
 
     mach_vertex_chords = np.array([x_e, y_e, z_e]) * ref_length
-    
+
     return{
         "mach_vertex_chords": mach_vertex_chords
     }

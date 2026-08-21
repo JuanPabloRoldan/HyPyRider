@@ -1,7 +1,8 @@
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
+
 from src.taylor_maccoll_solver import TaylorMaccollSolver
+
 
 # Fixture to initialize the solver instance
 @pytest.fixture
@@ -37,7 +38,7 @@ def test_calculate_Mach_from_components(solver):
     # This is the inverse case of test_calculate_velocity_components()
     V_r = 0.845154249
     V_theta = 0.097590007
-    
+
     M = solver.calculate_Mach_from_components(V_r, V_theta)
 
     expected_M = 3.61986846
@@ -52,7 +53,7 @@ def test_taylor_maccoll_system(solver):
     Vr = 0.8
     dVr = 0.01
     result = solver.taylor_maccoll_system(theta, Vr, dVr)
-    
+
     expected_result = np.array([dVr, -1.622309628])
     assert np.allclose(result, expected_result, atol=1e-3)
 
@@ -69,15 +70,15 @@ def test_solve(solver):
 
     # Call the solve function
     theta_c, Vr, dVr = solver.solve(theta0, Vr0, dVr0)
-    
+
     # Assert V_theta ~ 0 (this is true at the cone angle)
     assert np.isclose(dVr, 0, atol=0.01), \
-        f"Solver did not return a value of 0 for V_theta."
+        "Solver did not return a value of 0 for V_theta."
 
     # Expected cone angle
     expected_theta_c = np.radians(26.5909011)  # Expected cone angle
     expected_Mc = 3.57846955    # Expected Mach at cone angle.
-    
+
     # Assert first and last Theta values
     assert np.isclose(theta_c, expected_theta_c, rtol=0.01), \
         f"Cone angle mismatch: {theta_c} != {expected_theta_c}"
@@ -88,7 +89,6 @@ def test_solve(solver):
 
 def test_tabulate_from_shock_to_cone(solver):
     theta_s = np.radians(30)
-    theta_w = np.radians(23.4132244)
     theta_c = np.radians( 26.5909011)
     Mc = 3.57846955
 

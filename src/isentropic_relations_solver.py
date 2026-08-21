@@ -1,6 +1,6 @@
 class IsentropicRelationsSolver:
 
-    def __init__(self, gamma=1.4):
+    def __init__(self, gamma: float = 1.4) -> None:
         '''
         Initializes the isentropic shock solver with a specific heat ratio.
 
@@ -11,7 +11,7 @@ class IsentropicRelationsSolver:
         '''
         self.gamma = gamma
 
-    def isentropic_relations(self, Mach):
+    def isentropic_relations(self, Mach: float) -> dict[str, float]:
         """
         Calculates isentropic relations for a given Mach number and the
         solver's specific heat ratio.

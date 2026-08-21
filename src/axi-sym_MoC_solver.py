@@ -1,8 +1,11 @@
 import os
-from point import Point
-from moc_solver_pc import AxisymMoC
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from moc_solver_pc import AxisymMoC
+from point import Point
+
 
 class MoC_Skeleton:
     '''Builds a full axisymmetric MoC characteristic mesh, marching a grid of
@@ -40,6 +43,15 @@ class MoC_Skeleton:
         in interior points via solve_internal_point(), and closes with a
         wall point via solve_wall_point(). Stops early (returning the
         partial mesh) if either solve step fails to converge.
+
+        Note: solve_wall_point() models the body as a parabola valid only
+        within wall_params["x1"] to wall_params["x2"]. If i_max/delta_s are
+        large enough that the mesh marches past x2 before reaching i_max
+        rows, solve_wall_point() will fail once it tries to intersect a
+        characteristic with the wall beyond that domain (see its docstring)
+        -- this is a modeling-domain limit, not necessarily a bug. If you
+        hit this, check whether wall_params covers the z-extent you
+        actually need before assuming the math is wrong.
 
         Parameters
         ----------
@@ -82,7 +94,7 @@ class MoC_Skeleton:
                 PA = moc_mesh[i - 1][j]
                 PB = moc_mesh[i][j - 1]
                 PC = self.moc_solver.solve_internal_point(PA, PB)
-    
+
                 if PC is None:
                     return moc_mesh
                 moc_mesh[i][j] = PC
