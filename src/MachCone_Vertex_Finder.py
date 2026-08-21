@@ -1,3 +1,15 @@
+'''
+==================================================
+File: MachCone_Vertex_Finder.py
+Purpose: Locates the Mach cone vertex from left-side leading-edge geometry,
+per Eqn 2.18 of Bowcutt's dissertation (see mach_vertex() below).
+
+Expects a .nmb file with leading-edge coordinate data (see
+read_nmb_file() for the expected format); no such file currently ships
+with this repo, so this script cannot be run end-to-end yet.
+==================================================
+'''
+
 import numpy as np
 import math
 
@@ -83,16 +95,16 @@ def mach_vertex(chords, ref_length):
     }
 
 
-# Main execution
-file_path = 'LeadingEdgeData_LeftSide.nmb'
-try:
-    file_data = read_nmb_file(file_path)
-    ref_length = file_data["ref_length"]
-    dim_chordinates = file_data["non_dim_chords"]
-    print(dim_chordinates)
+if __name__ == "__main__":
+    file_path = 'LeadingEdgeData_LeftSide.nmb'
+    try:
+        file_data = read_nmb_file(file_path)
+        ref_length = file_data["ref_length"]
+        dim_chordinates = file_data["non_dim_chords"]
+        print(dim_chordinates)
 
-    mach_vertex_chords = mach_vertex(dim_chordinates, ref_length)
-    print(mach_vertex_chords)
+        mach_vertex_chords = mach_vertex(dim_chordinates, ref_length)
+        print(mach_vertex_chords)
 
-except Exception as e:
-    print(f"Error: {e}")
+    except Exception as e:
+        print(f"Error: {e}")

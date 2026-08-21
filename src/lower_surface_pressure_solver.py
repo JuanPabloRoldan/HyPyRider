@@ -8,6 +8,12 @@ from velocity_altitude_map import calculate_pressure, calculate_dynamic_pressure
 class SurfaceMeshAnalyzer:
     def __init__(self, file_path):
         """
+        Loads a lower-surface STL mesh for pressure/force analysis.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to the STL file containing the lower-surface mesh.
         """
         self.mesh = mesh.Mesh.from_file(file_path)
         self.cell_areas = None
@@ -18,9 +24,6 @@ class SurfaceMeshAnalyzer:
         """
         Calculate the area of each cell in the lower surface mesh.
         """
-        # # Calculate the area of each cell in the lower surface mesh
-        # cell_areas = numpy.linalg.norm(numpy.cross(lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 1], lower_surface_mesh.vectors[:, 0] - lower_surface_mesh.vectors[:, 2])) / 2
-        # return cell_areas
         V0 = self.mesh.vectors[:, 0]  # First vertex of each triangle
         V1 = self.mesh.vectors[:, 1]  # Second vertex
         V2 = self.mesh.vectors[:, 2]  # Third vertex
@@ -58,10 +61,6 @@ class SurfaceMeshAnalyzer:
         """
         Calculate the angle from the normal vector to the free-stream direction.
         """
-        # # Calculate the angle from the normal vector to the free-stream direction
-        # angle_from_normal_vector = numpy.arccos(numpy.dot(normal_vectors, [0, 0, 1]) / (numpy.linalg.norm(normal_vectors) * numpy.linalg.norm([0, 0, 1])))
-        # return angle_from_normal_vector
-
         if self.normal_vectors is None:
             self.calculate_normal_vector()
 
@@ -75,7 +74,6 @@ class SurfaceMeshAnalyzer:
 
         # Compute angles using arccos
         angles = np.arccos(np.clip(dot_products, -1.0, 1.0))
-        # angles = np.radians(180) - angles
         angles = np.radians(90) - angles
 
         return angles
@@ -194,61 +192,6 @@ class SurfaceMeshAnalyzer:
         pv_mesh.save(output_filename)
         print(f"VTK file saved: {output_filename}")
 
-    # def lower_surface_solver(self):
-    #     """
-    #     Loop through the cells in the lower surface mesh and calculate the cell area, normal vector, and angle from the normal vector to the free-stream direction.
-    #     """
-
-    #     lower_surface_mesh = import_lower_surface_mesh()
-    #     cell_areas = calculate_cell_area()
-    #     normal_vectors = calculate_normal_vector()
-    #     angle_from_normal_vector = calculate_angle_from_normal_vector()
-
-    #     for i in range(len(lower_surface_mesh.vectors)):
-    #         print(f'Cell {i}: Area = {cell_areas[i]}, Normal Vector = {normal_vectors[i]}, Angle from Normal Vector = {angle_from_normal_vector[i]}')
-   
-    # def calculate_cp_modified_newtonian(self, M1):
-    #     """
-    #     Use modified newtonian theory to calculate the pressure distribution given the angle of a unit normal
-
-    #     Parameters
-    #     ----------
-    #     M1 : float
-    #         Mach number
-
-    #     Returns
-    #     -------
-    #         - Cp: Pressure distribution given unit normal angle with the freestream
-    #         - post_shock_stagnation_Cp: Cp downstream of the shock
-    #     """
-    #     p_ratio = (1 + (self.gamma - 1) / 2 * M1**2)**(-self.gamma / (self.gamma - 1))
-
-    #     #Newtonian modified theory
-    #     Cpt = (((p_ratio)*(1+((self.gamma-1)/2)*M1**2)**(self.gamma/(self.gamma-1)))-1)/(0.5*self.gamma*M1**2)
-    #     Cp_newtonian_mod = Cpt*np.cos(self.angles)**2
-
-    #     return {
-    #         "Cp_newtonian_mod": Cp_newtonian_mod, #Use this one for surface calculations
-    #         "post_shock_stagnation_Cp": Cpt #may be needed in future for forces
-    #     }
-
-    # def lift_over_drag(self):
-    #     """
-    #     Use basic newtonian theory to calculate the lift over drag value per cell or per body
-
-    #     Parameters
-    #     ----------
-
-    #     Returns
-    #     -------
-    #         - Cl_Cd: Lift over Drag of the vehicle
-    #     """
-    #     self.Cl_Cd = self.Cl/self.Cd
-
-    #     return{
-    #         "Cl_Cd": self.Cl_Cd
-    #     }
-        
 # Example usage:
 if __name__ == "__main__":
 
@@ -289,7 +232,9 @@ if __name__ == "__main__":
     P2_P0 = isen_relations["Static Pressure Ratio (p/p0)"]
     P0_2 = os_P2 / P2_P0
 
-    post_shock_stag_properties = {"P0": P0_2, "T0":"_", "rho0":"_"}
+    # T0/rho0 are not computed yet -- calculate_exact_pressure_coefficients_cell()
+    # only reads P0 today, but the keys are kept here for a future extension.
+    post_shock_stag_properties = {"P0": P0_2, "T0": None, "rho0": None}
 
     analyzer.calculate_exact_pressure_coefficients_cell(results_df, post_shock_stag_properties, p_inf, q_inf)
     analyzer.calculate_newtonian_pressure_coefficients_cell()

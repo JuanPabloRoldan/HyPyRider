@@ -1,8 +1,44 @@
+'''
+==================================================
+File: metric_derivative_solver.py
+Purpose: Transforms velocity components from a body-fitted computational
+grid (eta, xi) to physical (x, y) space via the grid's Jacobian metrics,
+then integrates a characteristic line through that field.
+
+Nomenclature:
+    eta, xi   : Computational grid coordinates
+    x, y      : Physical coordinates
+    u, v      : Physical-space velocity components (x, y directions)
+    detJ      : Determinant of the (x, y) -> (eta, xi) Jacobian
+    eta_x, eta_y, xi_x, xi_y : Grid metric derivatives (d(eta)/dx, etc.)
+==================================================
+'''
+
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator
 
 def compute_metric_values(eta_grid, xi_grid, x_vals, y_vals, u_field, v_field):
+    '''
+    Computes the grid metric derivatives (eta_x, eta_y, xi_x, xi_y) that
+    relate the physical (x, y) grid to the computational (eta, xi) grid,
+    and packages them alongside the velocity field for interpolation.
+
+    Parameters
+    ----------
+    eta_grid, xi_grid : np.ndarray
+        1D arrays of computational grid coordinates.
+    x_vals, y_vals : np.ndarray
+        2D arrays of physical coordinates at each (eta, xi) grid point.
+    u_field, v_field : np.ndarray
+        2D arrays of physical-space velocity components at each grid point.
+
+    Returns
+    -------
+    np.ndarray
+        Grid-shaped array stacking [v, u, eta_x, eta_y, xi_x, xi_y] along
+        the last axis, ready for bilinear/scipy interpolation.
+    '''
     deta = eta_grid[1] - eta_grid[0]
     dxi = xi_grid[1] - xi_grid[0]
 
@@ -23,6 +59,33 @@ def compute_metric_values(eta_grid, xi_grid, x_vals, y_vals, u_field, v_field):
     return metric_values
 
 def metric_derivative_solver(v0, u0, x0, y0, eta0, xi0, grid_points, metric_values, method='manual'):
+    '''
+    Integrates a characteristic line forward from (x0, y0) / (eta0, xi0)
+    through the velocity field described by metric_values, tracking both
+    physical and computational coordinates simultaneously.
+
+    Parameters
+    ----------
+    v0, u0 : float
+        Initial physical-space velocity components at the starting point.
+    x0, y0 : float
+        Initial physical coordinates.
+    eta0, xi0 : float
+        Initial computational grid coordinates.
+    grid_points : tuple of np.ndarray
+        (eta_grid, xi_grid) 1D coordinate arrays.
+    metric_values : np.ndarray
+        Grid-shaped array from compute_metric_values().
+    method : {'manual', 'scipy'}
+        Interpolation scheme used to sample metric_values at arbitrary
+        (eta, xi): a hand-written bilinear interpolant, or
+        scipy.interpolate.RegularGridInterpolator.
+
+    Returns
+    -------
+    tuple of float
+        (eta1, xi1, x1, y1): the integrated point at t=1.
+    '''
     eta_grid, xi_grid = grid_points
 
     def bilinear_interpolate(eta, xi):
@@ -126,5 +189,3 @@ if __name__ == "__main__":
 
     print("\n Manual Interpolation Result:")
     print(f"  eta1 = {result_manual[0]:.8f}, xi1 = {result_manual[1]:.8f}, x1 = {result_manual[2]:.8f}, y1 = {result_manual[3]:.8f}")
-
-# Test
