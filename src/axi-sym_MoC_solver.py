@@ -41,6 +41,15 @@ class MoC_Skeleton:
         wall point via solve_wall_point(). Stops early (returning the
         partial mesh) if either solve step fails to converge.
 
+        Note: solve_wall_point() models the body as a parabola valid only
+        within wall_params["x1"] to wall_params["x2"]. If i_max/delta_s are
+        large enough that the mesh marches past x2 before reaching i_max
+        rows, solve_wall_point() will fail once it tries to intersect a
+        characteristic with the wall beyond that domain (see its docstring)
+        -- this is a modeling-domain limit, not necessarily a bug. If you
+        hit this, check whether wall_params covers the z-extent you
+        actually need before assuming the math is wrong.
+
         Parameters
         ----------
         log_file : str

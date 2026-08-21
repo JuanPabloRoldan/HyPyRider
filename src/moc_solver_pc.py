@@ -199,7 +199,22 @@ class AxisymMoC:
         
         det = ((-2 * b * z1 - a) ** 2) - (4 * b * c)
         if det < 0:
-            print('neg')
+            # The straight-line predictor from PB has no real intersection
+            # with the parabolic wall. In practice this has been observed
+            # to happen once PB has marched past the wall's defined z-extent
+            # (z_b > x2): the parabola is only a model of the body within
+            # [x1, x2], and extrapolating it further can easily stop
+            # intersecting the characteristic line at all. It is not
+            # necessarily a bug in this solve -- if you hit this, check
+            # whether z_b below is beyond wall_params["x2"] before assuming
+            # the mesh math is wrong.
+            if z_b > z2 or z_b < z1:
+                print(f"solve_wall_point: no real intersection (det={det:.4g}); "
+                      f"z_b={z_b:.4f} is outside the wall's defined domain "
+                      f"[{z1:.4f}, {z2:.4f}]")
+            else:
+                print(f"solve_wall_point: no real intersection (det={det:.4g}) "
+                      f"at z_b={z_b:.4f}, within wall domain [{z1:.4f}, {z2:.4f}]")
             return None
         z_c_prime = (2 * b * z1 + a + np.sqrt(det)) / (2 * b)
 
